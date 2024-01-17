@@ -4,6 +4,14 @@
 
 package frc.robot;
 
+import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
+import com.pathplanner.lib.util.PIDConstants;
+import com.pathplanner.lib.util.ReplanningConfig;
+
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.util.Units;
+
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
  * constants. This class should not be used for any other purpose. All constants should be declared
@@ -13,15 +21,50 @@ package frc.robot;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
+  public static final LoggingType logLevel = LoggingType.SMART_DASH; 
+  public static enum LoggingType {
+    NO_LOGGING,
+    SMART_DASH,
+    PRINT, 
+    SMART_DASH_AND_PRINT
+  }; 
   public static class OperatorConstants {
-    public static final int kDriverControllerPort = 0;
+    public static final int kXboxControllerPort = 5;
+    public static final int kLogitechControllerPort = 0;
   }
 
 public static class SwerveChassis {
 
     public static final double kADrive = 0;
-    public static double kVDrive;
-    public static double kSDrive;
+    public static final double kPDrive = 0.11;
+    public static final double kIDrive = 0.5;
+    public static final double kDDrive = 0.0001;
+    public static final double kVDrive =0.11;
+    public static final double kSDrive = 0.0;
+    public static final double kPeakForwardFF = 8; 
+    public static final double kPeakReverseFF = -8;
+    private static final double TRACK_WIDTH = 22;
+    private static final double WHEEL_BASE = 22; 
+    // max speed in meters per second. 
+    public static double kWheelRadius = Units.inchesToMeters(2.0);  
+    public static double kMaxVelocity = 3.0; 
+    public static double kMaxRotationsPerSec = kMaxVelocity/(2*Math.PI*kWheelRadius);
+    public static double degreesPerRotation = 82.0;
+    public static double degreesPerTick = 360.0/degreesPerRotation;  
+    public static double kDriveGearRatio = 12.0; 
+    public static double metersPerRev = kWheelRadius*2*Math.PI; 
+    public static final HolonomicPathFollowerConfig kFollowerConfig = new HolonomicPathFollowerConfig(
+      new PIDConstants(5.0, 0.0, 0.0),
+      new PIDConstants(5.0, 0.0, 0.0),
+      kMaxVelocity,
+      new Translation2d(WHEEL_BASE / 2.0, TRACK_WIDTH / 2.0).getNorm(),
+      new ReplanningConfig()
+    );
+    public static final SwerveDriveKinematics SWERVE_KINEMATICS = new SwerveDriveKinematics(
+				new Translation2d(WHEEL_BASE / 2.0, TRACK_WIDTH / 2.0),
+				new Translation2d(WHEEL_BASE / 2.0, -TRACK_WIDTH / 2.0),
+				new Translation2d(-WHEEL_BASE / 2.0, TRACK_WIDTH / 2.0),
+				new Translation2d(-WHEEL_BASE / 2.0, -TRACK_WIDTH / 2.0));
     // Constants for swerve pods. 
     public static class FrontLeft {
       public static int kDriveId = 17;
