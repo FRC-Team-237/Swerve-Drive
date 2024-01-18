@@ -4,6 +4,10 @@
 
 package frc.robot.subsystems;
 
+import java.util.ArrayList;
+import java.util.Collection;
+
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathHolonomic;
 import com.pathplanner.lib.path.PathPlannerPath;
@@ -36,7 +40,6 @@ public class DriveTrain extends SubsystemBase {
   private SwerveDrivePoseEstimator _swervePoseEstimator; 
   private Field2d _field = new Field2d(); 
   private ADIS16470_IMU _imu = new ADIS16470_IMU(); 
-
 
   public DriveTrain() {
     this.setName("Drive Train");
@@ -94,8 +97,7 @@ public class DriveTrain extends SubsystemBase {
   public ChassisSpeeds getRobotRelativeSpeeds()
   {
     SwerveModuleState[] swerveModuleStates = new SwerveModuleState[_swerveModules.length];
-    for (int i = 0; i< swerveModuleStates.length; i++)
-    {
+    for (int i = 0; i< swerveModuleStates.length; i++) {
       swerveModuleStates[i] = _swerveModules[i].getState(); 
     }
     return Constants.SwerveChassis.SWERVE_KINEMATICS.toChassisSpeeds(swerveModuleStates); 
@@ -150,6 +152,7 @@ public class DriveTrain extends SubsystemBase {
       mod.setDesiredState(swerveModuleStates[i++]);
     }
   }
+  
   @Override
   public void periodic() {
     // This method will be called once per scheduler run

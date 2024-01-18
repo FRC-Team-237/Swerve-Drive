@@ -49,7 +49,7 @@ public static class SwerveChassis {
     public static double kWheelRadius = Units.inchesToMeters(2.0);  
     public static double kMaxVelocity = 3.0; 
     public static double kMaxRotationsPerSec = kMaxVelocity/(2*Math.PI*kWheelRadius);
-    public static double degreesPerRotation = 82.0;
+    public static double degreesPerRotation = 30.0;
     public static double degreesPerTick = 360.0/degreesPerRotation;  
     public static double kDriveGearRatio = 12.0; 
     public static double metersPerRev = kWheelRadius*2*Math.PI; 

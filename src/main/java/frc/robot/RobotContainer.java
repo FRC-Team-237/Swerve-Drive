@@ -9,6 +9,9 @@ import frc.robot.commands.Autos;
 import frc.robot.commands.ExampleCommand;
 import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.ExampleSubsystem;
+
+import com.ctre.phoenix.music.Orchestra;
+
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -29,19 +32,28 @@ public class RobotContainer {
   // Replace with CommandPS4Controller or CommandJoystick if needed
   private final CommandXboxController m_driverController =
       new CommandXboxController(OperatorConstants.kXboxControllerPort);
-  private final Joystick _logitechJoystick = new Joystick(OperatorConstants.kLogitechControllerPort); 
-  
+  private final Joystick _logitechJoystick = new Joystick(OperatorConstants.kLogitechControllerPort);
   
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     // Configure the trigger bindings
     configureBindings();
+
     _drive.setDefaultCommand((new InstantCommand(
       () -> 
     {
-      double velocityX = -_logitechJoystick.getY()*Constants.SwerveChassis.kMaxVelocity; 
-      double velocityY = _logitechJoystick.getX()*Constants.SwerveChassis.kMaxVelocity; 
-      _drive.drive(velocityX, velocityY, 0, false);
+      double velocityX = -_logitechJoystick.getY() * Constants.SwerveChassis.kMaxVelocity;
+      double velocityY = _logitechJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
+      double magnitude = _logitechJoystick.getMagnitude();
+      if(magnitude > 0.05) {
+        _drive.drive(
+          velocityX * magnitude,
+          velocityY * magnitude,
+          0,
+          false);
+      } else {
+        _drive.drive(0, 0, 0, false);
+      }
     }, _drive)).repeatedly());
   }
 
