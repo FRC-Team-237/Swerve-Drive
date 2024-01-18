@@ -119,6 +119,7 @@ public class DriveTrain extends SubsystemBase {
       _swerveModules[i].setDesiredState(swerveModuleStates[i]);
     }
   }
+
   public void drive(double xVelocity_m_per_s, double yVelocity_m_per_s, double omega_rad_per_s, boolean fieldcentric){
     SwerveModuleState[] swerveModuleStates;
     //System.out.println("***X: "+xVelocity_m_per_s+" ***Y: "+yVelocity_m_per_s+" ***o: "+omega_rad_per_s);
@@ -153,6 +154,13 @@ public class DriveTrain extends SubsystemBase {
     }
   }
   
+  public void simulationInit()
+  {
+    for (SwerveModule mod : _swerveModules) {
+      mod.simulationInit();
+    }
+  }
+
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
@@ -183,4 +191,17 @@ public class DriveTrain extends SubsystemBase {
       _swerveDriveOdometry.update(new Rotation2d(_imu.getAngle(_imu.getYawAxis())), getPositions());
   }
   
+  public void testSwervePods()
+  {
+    for (SwerveModule mod: _swerveModules)
+    {
+      mod.testAngleMotor(0.3);
+    }
+  }
+  public void stopMotors(){
+    for (SwerveModule mod: _swerveModules)
+    {
+      mod.testAngleMotor(0.0);
+    }
+  }
 }
