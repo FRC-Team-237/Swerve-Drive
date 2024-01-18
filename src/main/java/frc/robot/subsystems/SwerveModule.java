@@ -9,18 +9,17 @@ import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.revrobotics.CANSparkBase;
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.REVPhysicsSim;
+import com.revrobotics.CANSparkLowLevel;
 import com.revrobotics.RelativeEncoder;
-import com.revrobotics.SparkAbsoluteEncoder;
 import com.revrobotics.SparkPIDController;
-import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
-import com.revrobotics.SparkAbsoluteEncoder.Type;
-
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
@@ -88,7 +87,12 @@ public class SwerveModule extends SubsystemBase {
 
   private void configureNeo(int id, boolean outputInverted) {
     _angleMotor = new CANSparkMax(id, MotorType.kBrushless);
+    // minimize can bus traffic for angle motors. 
+    _angleMotor.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus1, 500);
+    _angleMotor.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus2, 20);
+    _angleMotor.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus3, 500);
     _angleEncoder = _angleMotor.getEncoder();
+    _angleEncoder.setPositionConversionFactor(Constants.SwerveChassis.kAngleConversionFactor); 
     // _angleEncoder = _angleMotor.getAbsoluteEncoder(Type.kDutyCycle);
     _anglePID = _angleMotor.getPIDController();
     _anglePID.setFeedbackDevice(_angleEncoder);
@@ -182,11 +186,9 @@ public class SwerveModule extends SubsystemBase {
         * Constants.SwerveChassis.kDriveGearRatio);
     _driveMotor.setControl(vv);
     
-    double angleToEncPos = desiredState.angle.getDegrees() / Constants.SwerveChassis.degreesPerTick;
-    SmartDashboard.putNumber(_podPos.name() + "/Angle to Encoder Position", angleToEncPos);
-    _angleMotor.getPIDController().setReference(angleToEncPos, CANSparkBase.ControlType.kPosition);
+    _angleMotor.getPIDController().setReference(desiredState.angle.getDegrees(), CANSparkBase.ControlType.kPosition);
 
-    log();
+    //log();
   }
 
   public void log() {
@@ -198,7 +200,7 @@ public class SwerveModule extends SubsystemBase {
         SmartDashboard.putNumber(_podPos.name() + "/Target Angle", _targetState.angle.getDegrees());
         SmartDashboard.putNumber(_podPos.name() + "/Target Velocity (m per s)", _targetState.speedMetersPerSecond);
         SmartDashboard.putNumber(_podPos.name() + "/Reported Angle",
-            _angleEncoder.getPosition() * Constants.SwerveChassis.degreesPerTick);
+            _angleEncoder.getPosition());
         SmartDashboard.putNumber(_podPos.name() + "/Raw Angle Encoder",
             _angleEncoder.getPosition());
         SmartDashboard.putNumber(_podPos.name() + "/Current PID setpoint:",
@@ -207,6 +209,11 @@ public class SwerveModule extends SubsystemBase {
         SmartDashboard.putNumber(_podPos.name() + "/Reported m per s",
             (talonSignal.getValue() / Constants.SwerveChassis.kDriveGearRatio) * 2 * Math.PI
                 * Constants.SwerveChassis.kWheelRadius);
+        SmartDashboard.putNumber(_podPos.name() + "/Current Module State/Angle", _currentState.angle.getDegrees());
+        SmartDashboard.putNumber(_podPos.name() + "/Current Module State/Speed(m per S)", _currentState.speedMetersPerSecond);
+
+        SmartDashboard.putNumber(_podPos.name() + "/Angle Motor Output", _angleMotor.get());
+
         break;
       case PRINT:
         break;
@@ -214,6 +221,10 @@ public class SwerveModule extends SubsystemBase {
         break;
       default:
     }
+  }
+
+  public void testAngleMotor(double speed){
+    _angleMotor.set(speed);
   }
 
   @Override
@@ -232,5 +243,9 @@ public class SwerveModule extends SubsystemBase {
     SwerveModulePosition pos = new SwerveModulePosition(wheelRev * Constants.SwerveChassis.metersPerRev,
         _currentState.angle);
     return pos;
+  }
+
+  public void simulationInit() {
+    REVPhysicsSim.getInstance().addSparkMax(_angleMotor, DCMotor.getNEO(1));
   }
 }
