@@ -52,7 +52,10 @@ public static class SwerveChassis {
     public static double degreesPerRotation = 30.0;
     public static double degreesPerTick = 360.0/degreesPerRotation;  
     public static double kDriveGearRatio = 12.0; 
+    public static final double kAngleGearRatio = 12.8; // 12 rotations of motor for one rotation of the wheel. 
+    public static final double kAngleConversionFactor = 360.0 / kAngleGearRatio;  
     public static double metersPerRev = kWheelRadius*2*Math.PI; 
+
     public static final HolonomicPathFollowerConfig kFollowerConfig = new HolonomicPathFollowerConfig(
       new PIDConstants(5.0, 0.0, 0.0),
       new PIDConstants(5.0, 0.0, 0.0),
@@ -60,11 +63,13 @@ public static class SwerveChassis {
       new Translation2d(WHEEL_BASE / 2.0, TRACK_WIDTH / 2.0).getNorm(),
       new ReplanningConfig()
     );
+
     public static final SwerveDriveKinematics SWERVE_KINEMATICS = new SwerveDriveKinematics(
 				new Translation2d(WHEEL_BASE / 2.0, TRACK_WIDTH / 2.0),
 				new Translation2d(WHEEL_BASE / 2.0, -TRACK_WIDTH / 2.0),
 				new Translation2d(-WHEEL_BASE / 2.0, TRACK_WIDTH / 2.0),
 				new Translation2d(-WHEEL_BASE / 2.0, -TRACK_WIDTH / 2.0));
+
     // Constants for swerve pods. 
     public static class FrontLeft {
       public static int kDriveId = 17;
@@ -73,6 +78,7 @@ public static class SwerveChassis {
       public static boolean kAngleInverted = false; 
       public static boolean kDriveSensorPhaseInverted = false; 
     }  
+
     public static class FrontRight {
       public static int kDriveId = 15;
       public static int kAngleId = 14; 
@@ -80,6 +86,7 @@ public static class SwerveChassis {
       public static boolean kAngleInverted = false; 
       public static boolean kDriveSensorPhaseInverted = false; 
     }  
+
     public static class BackLeft {
       public static int kDriveId = 11;
       public static int kAngleId = 10; 
@@ -87,6 +94,7 @@ public static class SwerveChassis {
       public static boolean kAngleInverted = false; 
       public static boolean kDriveSensorPhaseInverted = false; 
     }  
+    
     public static class BackRight {
       public static int kDriveId = 13;
       public static int kAngleId = 12; 
