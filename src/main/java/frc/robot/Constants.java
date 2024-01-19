@@ -53,7 +53,9 @@ public static class SwerveChassis {
     public static double degreesPerTick = 360.0/degreesPerRotation;  
     public static double kDriveGearRatio = 12.0; 
     public static final double kAngleGearRatio = 12.8; // 12 rotations of motor for one rotation of the wheel. 
-    public static final double kAngleConversionFactor = 360.0 / kAngleGearRatio;  
+    public static final double kAngleConversionFactor = 360.0 / kAngleGearRatio;
+    public static final double kAbsoluteCountsPerRev = 1.0; //TODO figure this out.   
+    public static final double kAbsoluteConversionFactor = 360.0 / kAbsoluteCountsPerRev; 
     public static double metersPerRev = kWheelRadius*2*Math.PI; 
 
     public static final HolonomicPathFollowerConfig kFollowerConfig = new HolonomicPathFollowerConfig(
