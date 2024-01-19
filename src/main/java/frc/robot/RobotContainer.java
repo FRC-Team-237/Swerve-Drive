@@ -47,7 +47,7 @@ public class RobotContainer {
       double velocityX = -_logitechJoystick.getY() * Constants.SwerveChassis.kMaxVelocity;
       double velocityY = _logitechJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
       double magnitude = _logitechJoystick.getMagnitude();
-      if(magnitude > 0.05) {
+      if(magnitude > 0.1) {
         _drive.drive(
           velocityX * magnitude,
           velocityY * magnitude,
@@ -75,9 +75,10 @@ public class RobotContainer {
 
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
     // cancelling on release.
-    _button
-    .whileTrue(new InstantCommand(_drive::testSwervePods,_drive))
-    .whileFalse(new InstantCommand(_drive::stopMotors, _drive));
+    //_button
+    //.whileTrue(new InstantCommand(() -> _drive.testAnglePositions(90),_drive))
+    //.whileTrue(new InstantCommand(_drive::testSwervePods,_drive))
+    //.whileFalse(new InstantCommand(_drive::stopMotors, _drive));
   }
 
   /**

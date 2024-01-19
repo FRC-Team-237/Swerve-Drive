@@ -198,6 +198,12 @@ public class DriveTrain extends SubsystemBase {
       mod.testAngleMotor(0.3);
     }
   }
+  public void testAnglePositions(double angle){
+    for (SwerveModule mod : _swerveModules)
+    {
+      mod.testAnglePosition(angle);
+    }
+  }
   public void stopMotors(){
     for (SwerveModule mod: _swerveModules)
     {
