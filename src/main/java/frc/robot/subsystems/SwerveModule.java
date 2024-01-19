@@ -13,6 +13,7 @@ import com.revrobotics.REVPhysicsSim;
 import com.revrobotics.CANSparkLowLevel;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
+import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
@@ -87,6 +88,8 @@ public class SwerveModule extends SubsystemBase {
 
   private void configureNeo(int id, boolean outputInverted) {
     _angleMotor = new CANSparkMax(id, MotorType.kBrushless);
+    _angleMotor.restoreFactoryDefaults();
+    _angleMotor.clearFaults();
     // minimize can bus traffic for angle motors. 
     _angleMotor.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus1, 500);
     _angleMotor.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus2, 20);
@@ -96,15 +99,16 @@ public class SwerveModule extends SubsystemBase {
     // _angleEncoder = _angleMotor.getAbsoluteEncoder(Type.kDutyCycle);
     _anglePID = _angleMotor.getPIDController();
     _anglePID.setFeedbackDevice(_angleEncoder);
-    _anglePID.setP(0.4);
+    _anglePID.setP(0.025);
     _anglePID.setI(0);
-    _anglePID.setD(0.8);
+    _anglePID.setD(0.2);
+    //_anglePID.setFF(0.125);
     _anglePID.setOutputRange(-1, 1);
     _anglePID.setPositionPIDWrappingEnabled(true);
-    _anglePID.setPositionPIDWrappingMinInput(0);
-    _anglePID.setPositionPIDWrappingMaxInput(Math.PI * 2.0);
-    _angleMotor.restoreFactoryDefaults();
-    _angleMotor.clearFaults();
+    _anglePID.setPositionPIDWrappingMinInput(-180.0);
+    _anglePID.setPositionPIDWrappingMaxInput(180.0);
+    _anglePID.setSmartMotionAllowedClosedLoopError(10.0,0);
+    _anglePID.setSmartMotionMinOutputVelocity(10, 0);
     _angleMotor.setIdleMode(IdleMode.kBrake);
     _angleEncoder.setPosition(0.0);
 
@@ -167,7 +171,7 @@ public class SwerveModule extends SubsystemBase {
 
   public SwerveModuleState getState() {
     double velocity = _driveMotor.getVelocity().getValue();
-    Rotation2d angle = Rotation2d.fromDegrees(_angleEncoder.getPosition() * Constants.SwerveChassis.degreesPerTick);
+    Rotation2d angle = Rotation2d.fromDegrees(_angleEncoder.getPosition());
     return new SwerveModuleState(velocity, angle);
   }
 
@@ -204,14 +208,13 @@ public class SwerveModule extends SubsystemBase {
         SmartDashboard.putNumber(_podPos.name() + "/Raw Angle Encoder",
             _angleEncoder.getPosition());
         SmartDashboard.putNumber(_podPos.name() + "/Current PID setpoint:",
-            _targetState.angle.getDegrees() / Constants.SwerveChassis.degreesPerTick);
+            _targetState.angle.getDegrees());
         SmartDashboard.putNumber(_podPos.name() + "/Rotations Per Second", talonSignal.getValue());
         SmartDashboard.putNumber(_podPos.name() + "/Reported m per s",
             (talonSignal.getValue() / Constants.SwerveChassis.kDriveGearRatio) * 2 * Math.PI
                 * Constants.SwerveChassis.kWheelRadius);
         SmartDashboard.putNumber(_podPos.name() + "/Current Module State/Angle", _currentState.angle.getDegrees());
         SmartDashboard.putNumber(_podPos.name() + "/Current Module State/Speed(m per S)", _currentState.speedMetersPerSecond);
-
         SmartDashboard.putNumber(_podPos.name() + "/Angle Motor Output", _angleMotor.get());
 
         break;
@@ -226,12 +229,17 @@ public class SwerveModule extends SubsystemBase {
   public void testAngleMotor(double speed){
     _angleMotor.set(speed);
   }
-
+  public void testAnglePosition(double setpoint)
+  {
+    _targetState.angle = Rotation2d.fromDegrees(setpoint);
+    _anglePID.setReference(setpoint, ControlType.kPosition);
+  }
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
+    
     var talonSignal = _driveMotor.getVelocity();
-    _currentState.angle = new Rotation2d(_angleEncoder.getPosition() * Constants.SwerveChassis.degreesPerTick);
+    _currentState.angle = Rotation2d.fromDegrees(_angleEncoder.getPosition());
     double wheelRPS = talonSignal.getValue() / Constants.SwerveChassis.kDriveGearRatio;
     _currentState.speedMetersPerSecond = (wheelRPS) * 2 * Math.PI * Constants.SwerveChassis.kWheelRadius;
     log();
