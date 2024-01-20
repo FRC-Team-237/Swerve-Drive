@@ -45,17 +45,17 @@ public class RobotContainer {
       () -> 
     {
       double velocityX = -_logitechJoystick.getY() * Constants.SwerveChassis.kMaxVelocity;
-      double velocityY = _logitechJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
-      double magnitude = _logitechJoystick.getMagnitude();
-      if(magnitude > 0.1) {
-        _drive.drive(
-          velocityX * magnitude,
-          velocityY * magnitude,
-          0,
-          false);
-      } else {
-        _drive.drive(0, 0, 0, false);
-      }
+      double velocityY = -_logitechJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
+
+      velocityX = Math.abs(velocityX) > 0.1 ? velocityX : 0;
+      velocityY = Math.abs(velocityY) > 0.1 ? velocityY : 0;
+
+      _drive.drive(
+        velocityX * Math.abs(velocityX),
+        velocityY * Math.abs(velocityY),
+        0,
+        false
+      );
     }, _drive)).repeatedly());
   }
 
