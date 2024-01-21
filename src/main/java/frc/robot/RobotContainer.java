@@ -5,6 +5,7 @@
 package frc.robot;
 
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.Utilities.PathUtilities;
 import frc.robot.commands.Autos;
 import frc.robot.commands.ExampleCommand;
 import frc.robot.subsystems.DriveTrain;
@@ -13,6 +14,7 @@ import frc.robot.subsystems.ExampleSubsystem;
 import com.ctre.phoenix.music.Orchestra;
 
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RepeatCommand;
@@ -39,6 +41,7 @@ public class RobotContainer {
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     // Configure the trigger bindings
+    SmartDashboard.putString("Path to Test", "Test Path"); 
     configureBindings();
 
     _drive.setDefaultCommand((new InstantCommand(
@@ -73,14 +76,16 @@ public class RobotContainer {
     new Trigger(m_exampleSubsystem::exampleCondition)
         .onTrue(new ExampleCommand(m_exampleSubsystem));
 
-    // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
-    // cancelling on release.
-    //_button
-    //.whileTrue(new InstantCommand(() -> _drive.testAnglePositions(90),_drive))
-    //.whileTrue(new InstantCommand(_drive::testSwervePods,_drive))
-    //.whileFalse(new InstantCommand(_drive::stopMotors, _drive));
-  }
+    // Test path following. 
+    m_driverController.b().onTrue(getTestPathCommand()).onFalse(new InstantCommand(_drive::stopMotors, _drive)); 
 
+
+  }
+  public Command getTestPathCommand()
+  {
+    String pathName = SmartDashboard.getString("Path to Test", "Test Path"); 
+    return PathUtilities.makePath(pathName, _drive); 
+  }
   /**
    * Use this to pass the autonomous command to the main {@link Robot} class.
    *
