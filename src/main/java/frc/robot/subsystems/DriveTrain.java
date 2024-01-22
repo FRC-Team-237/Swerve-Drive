@@ -4,14 +4,7 @@
 
 package frc.robot.subsystems;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
-import com.ctre.phoenix6.hardware.TalonFX;
 import com.pathplanner.lib.auto.AutoBuilder;
-import com.pathplanner.lib.commands.FollowPathHolonomic;
-import com.pathplanner.lib.path.PathPlannerPath;
-import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
 import com.pathplanner.lib.util.PathPlannerLogging;
 
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
@@ -24,13 +17,10 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.ADIS16470_IMU;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.Constants;
 import frc.robot.Constants.SwerveChassis;
-import frc.robot.RobotContainer;
 import frc.robot.subsystems.SwerveModule.ModPosition;
 
 public class DriveTrain extends SubsystemBase {
@@ -209,5 +199,8 @@ public class DriveTrain extends SubsystemBase {
     {
       mod.testAngleMotor(0.0);
     }
+  }
+  public boolean flipPath(){
+    return false; 
   }
 }
