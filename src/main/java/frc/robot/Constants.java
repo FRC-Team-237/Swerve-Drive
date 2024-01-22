@@ -104,5 +104,10 @@ public static class SwerveChassis {
     }  
 }
 
+public static class Mechanism {
+  public static int kShooterMotorId = 19;
+  
+}
+
 
 }
