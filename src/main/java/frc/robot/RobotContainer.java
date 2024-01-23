@@ -38,6 +38,8 @@ public class RobotContainer {
       new CommandXboxController(OperatorConstants.kXboxControllerPort);
   private final Joystick _logitechJoystick = new Joystick(OperatorConstants.kLogitechControllerPort);
   private final JoystickButton _button = new JoystickButton(_logitechJoystick, 1); 
+
+  private boolean fieldCentric;
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     // Configure the trigger bindings
@@ -47,17 +49,27 @@ public class RobotContainer {
     _drive.setDefaultCommand((new InstantCommand(
       () -> 
     {
-      double velocityX = -_logitechJoystick.getY() * Constants.SwerveChassis.kMaxVelocity;
-      double velocityY = -_logitechJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
+      // double velocityX = -_logitechJoystick.getY() * Constants.SwerveChassis.kMaxVelocity;
+      // double velocityY = -_logitechJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
+      double velocityX = -m_driverController.getLeftY() * Constants.SwerveChassis.kMaxVelocity;
+      double velocityY = -m_driverController.getLeftX() * Constants.SwerveChassis.kMaxVelocity;
+      double rot = m_driverController.getRightX();
+      rot = Math.abs(rot) > 0.2 ? rot : 0;
+      rot /= 4.0;
+      rot *= Math.abs(rot);
+      
+      rot *= 2.0 * Math.PI / 12.0;
 
       velocityX = Math.abs(velocityX) > 0.1 ? velocityX : 0;
       velocityY = Math.abs(velocityY) > 0.1 ? velocityY : 0;
 
+      SmartDashboard.putNumber("Rotation speed", rot);
+
       _drive.drive(
         velocityX * Math.abs(velocityX),
         velocityY * Math.abs(velocityY),
-        0,
-        false
+        rot,
+        fieldCentric
       );
     }, _drive)).repeatedly());
   }
@@ -77,13 +89,23 @@ public class RobotContainer {
         .onTrue(new ExampleCommand(m_exampleSubsystem));
 
     // Test path following. 
-    m_driverController.b().onTrue(getTestPathCommand()).onFalse(new InstantCommand(_drive::stopMotors, _drive)); 
-
-
+    m_driverController.b()
+      .onTrue(new InstantCommand(() -> {
+        String pathName = SmartDashboard.getString("Path to Test", "Test Path"); 
+        PathUtilities.makePath(pathName, _drive).schedule(); 
+      }))
+      .onFalse(new InstantCommand(_drive::stopMotors, _drive)); 
+    
+    m_driverController.y()
+      .onTrue(new InstantCommand(() -> {
+        fieldCentric = !fieldCentric;
+        System.out.println("Toggled field centric");
+      }));
   }
-  public Command getTestPathCommand()
-  {
+
+  public Command getTestPathCommand() {
     String pathName = SmartDashboard.getString("Path to Test", "Test Path"); 
+    System.out.println(pathName);
     return PathUtilities.makePath(pathName, _drive); 
   }
   /**

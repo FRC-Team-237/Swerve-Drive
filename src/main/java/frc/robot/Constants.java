@@ -47,11 +47,11 @@ public static class SwerveChassis {
     private static final double WHEEL_BASE = 22; 
     // max speed in meters per second. 
     public static double kWheelRadius = Units.inchesToMeters(2.0);  
-    public static double kMaxVelocity = 0.5; 
+    public static double kMaxVelocity = 1.0; 
     public static double kMaxRotationsPerSec = kMaxVelocity/(2*Math.PI*kWheelRadius);
     public static double degreesPerRotation = 30.0;
     public static double degreesPerTick = 360.0/degreesPerRotation;  
-    public static double kDriveGearRatio = 12.0; 
+    public static double kDriveGearRatio = 6.75; 
     public static final double kAngleGearRatio = 12.8; // 12 rotations of motor for one rotation of the wheel. 
     public static final double kAngleConversionFactor = 360.0 / kAngleGearRatio;  
     public static double metersPerRev = kWheelRadius*2*Math.PI; 
