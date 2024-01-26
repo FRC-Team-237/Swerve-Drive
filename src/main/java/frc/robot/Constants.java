@@ -35,7 +35,7 @@ public final class Constants {
 
 public static class SwerveChassis {
 
-    public static final double kADrive = 0;
+    public static final double kADrive = 0.1;
     public static final double kPDrive = 0.11;
     public static final double kIDrive = 0.5;
     public static final double kDDrive = 0.0001;

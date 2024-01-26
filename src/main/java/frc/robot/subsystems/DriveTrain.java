@@ -15,6 +15,10 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructArrayPublisher;
+import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.wpilibj.ADIS16470_IMU;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -30,7 +34,10 @@ public class DriveTrain extends SubsystemBase {
   private SwerveDrivePoseEstimator _swervePoseEstimator; 
   private Field2d _field = new Field2d(); 
   private ADIS16470_IMU _imu = new ADIS16470_IMU(); 
-
+  
+  private StructArrayPublisher<SwerveModuleState> _swerveStatesPub; 
+  private StructPublisher<Pose2d> _posePub; 
+  
   public DriveTrain() {
     this.setName("Drive Train");
 
@@ -45,7 +52,8 @@ public class DriveTrain extends SubsystemBase {
     _swerveDriveOdometry = new SwerveDriveOdometry(Constants.SwerveChassis.SWERVE_KINEMATICS,
     new Rotation2d(_imu.getAngle(_imu.getYawAxis())),
     getPositions()); 
-
+    
+    _swervePoseEstimator = new SwerveDrivePoseEstimator(Constants.SwerveChassis.SWERVE_KINEMATICS, Rotation2d.fromDegrees(0), getEstimatedPosition(), new Pose2d(1, 3, Rotation2d.fromDegrees(0))); 
     AutoBuilder.configureHolonomic(
       this::getPose2d, 
       this::resetPoseEstimator,
@@ -63,9 +71,18 @@ public class DriveTrain extends SubsystemBase {
         }
         return false;
     },
-    this);
-
+    this); 
     PathPlannerLogging.setLogActivePathCallback((poses) -> _field.getObject("path").setPoses(poses));
+    // Set up Publishers 
+    _swerveStatesPub = NetworkTableInstance.getDefault().getStructArrayTopic("TargetStates", SwerveModuleState.struct).publish(); 
+    _posePub = NetworkTableInstance.getDefault().getStructTopic("Target Pose", Pose2d.struct).publish(); 
+  }
+  private SwerveModulePosition[] getEstimatedPosition() {
+    SwerveModulePosition[] positions = new SwerveModulePosition[4];
+    for (int i = 0; i < positions.length; i++){
+      positions[i] = _swerveModules[i].getEstimatedPosition(); 
+    }
+    return positions;
   }
   public SwerveModulePosition[] getPositions(){
     SwerveModulePosition[] positions = new SwerveModulePosition[4];
@@ -154,6 +171,9 @@ public class DriveTrain extends SubsystemBase {
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
+    _swervePoseEstimator.update(Rotation2d.fromDegrees(_imu.getAngle(_imu.getYawAxis())), getPositions()); 
+    _swerveStatesPub.set(getStates());
+    _posePub.set(_swervePoseEstimator.getEstimatedPosition());
   }
    /**
    * This method updates swerve odometry. Note that we do not update it in a
@@ -202,5 +222,12 @@ public class DriveTrain extends SubsystemBase {
   }
   public boolean flipPath(){
     return false; 
+  }
+  public SwerveModuleState[] getStates(){
+    SwerveModuleState[] swerveModuleStates = new SwerveModuleState[_swerveModules.length];
+    for (int i = 0; i< swerveModuleStates.length; i++) {
+      swerveModuleStates[i] = _swerveModules[i].getTargetState(); 
+    }
+    return swerveModuleStates; 
   }
 }

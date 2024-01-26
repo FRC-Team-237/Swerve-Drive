@@ -49,10 +49,10 @@ public class RobotContainer {
     _drive.setDefaultCommand((new InstantCommand(
       () -> 
     {
-      // double velocityX = -_logitechJoystick.getY() * Constants.SwerveChassis.kMaxVelocity;
-      // double velocityY = -_logitechJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
-      double velocityX = -m_driverController.getLeftY() * Constants.SwerveChassis.kMaxVelocity;
-      double velocityY = -m_driverController.getLeftX() * Constants.SwerveChassis.kMaxVelocity;
+      double velocityX = -_logitechJoystick.getY() * Constants.SwerveChassis.kMaxVelocity;
+      double velocityY = -_logitechJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
+      //double velocityX = -m_driverController.getLeftY() * Constants.SwerveChassis.kMaxVelocity;
+      //double velocityY = -m_driverController.getLeftX() * Constants.SwerveChassis.kMaxVelocity;
       double rot = m_driverController.getRightX();
       rot = Math.abs(rot) > 0.2 ? rot : 0;
       rot /= 4.0;

@@ -7,6 +7,7 @@ package frc.robot.subsystems;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.sim.TalonFXSimState;
 import com.revrobotics.CANSparkBase;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.REVPhysicsSim;
@@ -20,10 +21,18 @@ import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N2;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.simulation.LinearSystemSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.RobotContainer;
 
 public class SwerveModule extends SubsystemBase {
   /** Creates a new SwervePod. */
@@ -35,7 +44,8 @@ public class SwerveModule extends SubsystemBase {
   private SparkPIDController _anglePID;
   private SwerveModuleState _targetState;
   private SwerveModuleState _currentState;
-
+  private TalonFXSimState _talonSimState; 
+  private LinearSystemSim<N1, N1, N1> _driveSim; 
   public enum ModPosition {
     FRONT_LEFT,
     FRONT_RIGHT,
@@ -84,6 +94,14 @@ public class SwerveModule extends SubsystemBase {
 
     _driveMotor.getConfigurator().apply(config);
     _driveMotor.setInverted(outputInverted);
+    if(RobotBase.isSimulation()){
+      _talonSimState = _driveMotor.getSimState(); 
+      _driveSim = new LinearSystemSim<>(
+        LinearSystemId.identifyVelocitySystem(
+          Constants.SwerveChassis.kVDrive,
+          Constants.SwerveChassis.kADrive
+          )); 
+    }
   }
 
   private void configureNeo(int id, boolean outputInverted) {
@@ -174,9 +192,17 @@ public class SwerveModule extends SubsystemBase {
     Rotation2d angle = Rotation2d.fromDegrees(_angleEncoder.getPosition());
     return new SwerveModuleState(velocity, angle);
   }
-
+  public SwerveModuleState getTargetState() {
+    return _targetState; 
+  }
   public void setDesiredState(SwerveModuleState desiredState) {
     _targetState = desiredState;
+    
+    if (RobotBase.isSimulation())
+    {
+
+    }
+    
     VelocityVoltage vv = new VelocityVoltage(
       0.0,
       0.0,
@@ -252,8 +278,39 @@ public class SwerveModule extends SubsystemBase {
         _currentState.angle);
     return pos;
   }
-
+  public SwerveModulePosition getEstimatedPosition()
+  {
+    var talonSignalEnc = _driveMotor.getPosition();
+    double wheelRev = talonSignalEnc.getValue() / Constants.SwerveChassis.kDriveGearRatio;
+    SwerveModulePosition pos = new SwerveModulePosition(wheelRev * Constants.SwerveChassis.metersPerRev,
+        _targetState.angle);
+    return pos;
+  }
   public void simulationInit() {
     REVPhysicsSim.getInstance().addSparkMax(_angleMotor, DCMotor.getNEO(1));
+  }
+  @Override
+  public void simulationPeriodic(){
+    _talonSimState.setSupplyVoltage(RobotController.getBatteryVoltage()); 
+    _driveSim.setInput(_talonSimState.getMotorVoltage());
+    // update input voltage 
+    _driveSim.update(0.02);
+    // update simulated talons 
+    double driveVel = _driveSim.getOutput(0); 
+    double motorRPS = meterToRotations(driveVel); 
+    double motorRotations = motorRPS * 0.02; // Multiply by the loop rate 
+    _talonSimState.addRotorPosition(motorRotations); 
+    _talonSimState.setRotorVelocity(motorRPS); 
+  }
+  private double meterToRotations(double meters)
+  {
+    final double circumfrence = Constants.SwerveChassis.kWheelRadius * 2 * Math.PI; 
+    final double wheelRotationsPerMeter = 1.0 / circumfrence; 
+    return wheelRotationsPerMeter * meters; 
+  }
+  private double rotationToMeters(double rotations) {
+     /* Get circumference of wheel */
+     final double circumference = Constants.SwerveChassis.kWheelRadius * 2 * Math.PI;
+     return rotations * circumference;
   }
 }
