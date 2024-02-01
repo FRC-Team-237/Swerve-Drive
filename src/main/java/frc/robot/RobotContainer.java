@@ -9,6 +9,7 @@ import frc.robot.commands.Autos;
 import frc.robot.commands.ExampleCommand;
 import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.ExampleSubsystem;
+import frc.robot.subsystems.ShooterSubsystem;
 
 import com.ctre.phoenix.music.Orchestra;
 
@@ -36,14 +37,32 @@ public class RobotContainer {
       new CommandXboxController(OperatorConstants.kXboxControllerPort);
   private final Joystick _logitechJoystick = new Joystick(OperatorConstants.kLogitechControllerPort);
   private final JoystickButton _button = new JoystickButton(_logitechJoystick, 1); 
+
+  private final ShooterSubsystem _shooter = new ShooterSubsystem();
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     // Configure the trigger bindings
     configureBindings();
 
+    // _shooter.setDefaultCommand(new InstantCommand(() -> {
+    //   double power = 0.0;
+
+    //   power += m_driverController.getRightTriggerAxis();
+    //   power -= m_driverController.getLeftTriggerAxis();
+
+    //   _shooter.output(power * 0.5);
+    // }, _shooter).repeatedly());
+
     _drive.setDefaultCommand((new InstantCommand(
       () -> 
     {
+      double power = 0.0;
+
+      power += m_driverController.getRightTriggerAxis();
+      power -= m_driverController.getLeftTriggerAxis();
+
+      _shooter.output(power * 0.5);
+
       double velocityX = -_logitechJoystick.getY() * Constants.SwerveChassis.kMaxVelocity;
       double velocityY = _logitechJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
       double magnitude = _logitechJoystick.getMagnitude();
@@ -56,7 +75,7 @@ public class RobotContainer {
       } else {
         _drive.drive(0, 0, 0, false);
       }
-    }, _drive)).repeatedly());
+    }, _drive, _shooter)).repeatedly());
   }
 
   /**

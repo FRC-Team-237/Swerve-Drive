@@ -12,17 +12,19 @@ import frc.robot.Constants;
 
 public class ShooterSubsystem extends SubsystemBase {
 
-  private CANSparkMax shooterMotor;
+  private CANSparkMax lowMotor;
+  private CANSparkMax highMotor;
 
-  /** Creates a new ShooterSubsystem. */
   public ShooterSubsystem() {
-    shooterMotor = new CANSparkMax(Constants.Mechanism.kShooterMotorId, MotorType.kBrushless);
+    lowMotor = new CANSparkMax(Constants.Mechanism.kShooterLowMotorId, MotorType.kBrushless);
+    highMotor = new CANSparkMax(Constants.Mechanism.kShooterHighMotorId, MotorType.kBrushless);
   }
 
-  // This method will be called once per scheduler run
+  public void output(double speed) {
+    lowMotor.set(speed);
+    highMotor.set(speed);
+  }
+
   @Override
-  public void periodic() {
-
-
-  }
+  public void periodic() {}
 }
