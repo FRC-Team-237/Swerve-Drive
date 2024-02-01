@@ -5,6 +5,7 @@
 package frc.robot;
 
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.Utilities.PathUtilities;
 import frc.robot.commands.Autos;
 import frc.robot.commands.ExampleCommand;
 import frc.robot.subsystems.DriveTrain;
@@ -14,6 +15,7 @@ import frc.robot.subsystems.ShooterSubsystem;
 import com.ctre.phoenix.music.Orchestra;
 
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RepeatCommand;
@@ -38,10 +40,13 @@ public class RobotContainer {
   private final Joystick _logitechJoystick = new Joystick(OperatorConstants.kLogitechControllerPort);
   private final JoystickButton _button = new JoystickButton(_logitechJoystick, 1); 
 
+
+  private boolean fieldCentric;
   private final ShooterSubsystem _shooter = new ShooterSubsystem();
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     // Configure the trigger bindings
+    SmartDashboard.putString("Path to Test", "Test Path"); 
     configureBindings();
 
     // _shooter.setDefaultCommand(new InstantCommand(() -> {
@@ -56,25 +61,35 @@ public class RobotContainer {
     _drive.setDefaultCommand((new InstantCommand(
       () -> 
     {
+
       double power = 0.0;
 
       power += m_driverController.getRightTriggerAxis();
       power -= m_driverController.getLeftTriggerAxis();
 
       _shooter.output(power * 0.5);
+      // double velocityX = -_logitechJoystick.getY() * Constants.SwerveChassis.kMaxVelocity;
+      // double velocityY = -_logitechJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
+      double velocityX = -m_driverController.getLeftY() * Constants.SwerveChassis.kMaxVelocity;
+      double velocityY = -m_driverController.getLeftX() * Constants.SwerveChassis.kMaxVelocity;
+      double rot = m_driverController.getRightX();
+      rot = Math.abs(rot) > 0.2 ? rot : 0;
+      rot /= 4.0;
+      rot *= Math.abs(rot);
+      
+      rot *= 2.0 * Math.PI / 12.0;
 
-      double velocityX = -_logitechJoystick.getY() * Constants.SwerveChassis.kMaxVelocity;
-      double velocityY = _logitechJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
-      double magnitude = _logitechJoystick.getMagnitude();
-      if(magnitude > 0.1) {
-        _drive.drive(
-          velocityX * magnitude,
-          velocityY * magnitude,
-          0,
-          false);
-      } else {
-        _drive.drive(0, 0, 0, false);
-      }
+      velocityX = Math.abs(velocityX) > 0.1 ? velocityX : 0;
+      velocityY = Math.abs(velocityY) > 0.1 ? velocityY : 0;
+
+      SmartDashboard.putNumber("Rotation speed", rot);
+
+      _drive.drive(
+        velocityX * Math.abs(velocityX),
+        velocityY * Math.abs(velocityY),
+        rot,
+        fieldCentric
+      );
     }, _drive, _shooter)).repeatedly());
   }
 
@@ -92,14 +107,26 @@ public class RobotContainer {
     new Trigger(m_exampleSubsystem::exampleCondition)
         .onTrue(new ExampleCommand(m_exampleSubsystem));
 
-    // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
-    // cancelling on release.
-    //_button
-    //.whileTrue(new InstantCommand(() -> _drive.testAnglePositions(90),_drive))
-    //.whileTrue(new InstantCommand(_drive::testSwervePods,_drive))
-    //.whileFalse(new InstantCommand(_drive::stopMotors, _drive));
+    // Test path following. 
+    m_driverController.b()
+      .onTrue(new InstantCommand(() -> {
+        String pathName = SmartDashboard.getString("Path to Test", "Test Path"); 
+        PathUtilities.makePath(pathName, _drive).schedule(); 
+      }))
+      .onFalse(new InstantCommand(_drive::stopMotors, _drive)); 
+    
+    m_driverController.y()
+      .onTrue(new InstantCommand(() -> {
+        fieldCentric = !fieldCentric;
+        System.out.println("Toggled field centric");
+      }));
   }
 
+  public Command getTestPathCommand() {
+    String pathName = SmartDashboard.getString("Path to Test", "Test Path"); 
+    System.out.println(pathName);
+    return PathUtilities.makePath(pathName, _drive); 
+  }
   /**
    * Use this to pass the autonomous command to the main {@link Robot} class.
    *
