@@ -101,8 +101,8 @@ public class SwerveModule extends SubsystemBase {
     _anglePID.setFeedbackDevice(_angleEncoder);
     _anglePID.setP(0.025);
     _anglePID.setI(0);
-    _anglePID.setD(0.2);
-    //_anglePID.setFF(0.125);
+    _anglePID.setD(0.0);
+    _anglePID.setFF(0.0008);
     _anglePID.setOutputRange(-1, 1);
     _anglePID.setPositionPIDWrappingEnabled(true);
     _anglePID.setPositionPIDWrappingMinInput(-180.0);
@@ -190,7 +190,7 @@ public class SwerveModule extends SubsystemBase {
         * Constants.SwerveChassis.kDriveGearRatio);
     _driveMotor.setControl(vv);
     
-    _angleMotor.getPIDController().setReference(desiredState.angle.getDegrees(), CANSparkBase.ControlType.kPosition);
+    _anglePID.setReference(desiredState.angle.getDegrees(), CANSparkBase.ControlType.kPosition);
 
     //log();
   }
