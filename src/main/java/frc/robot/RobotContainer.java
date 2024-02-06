@@ -15,6 +15,8 @@ import frc.robot.subsystems.ShooterSubsystem;
 
 import com.ctre.phoenix.music.Orchestra;
 
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.event.EventLoop;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -135,6 +137,17 @@ public class RobotContainer {
     })).onFalse(new InstantCommand(() -> {
       _shooter.feed(0.0);
     }));
+
+    m_driverController.povDown()
+      .onTrue(new InstantCommand(() -> {
+        _drive.resetOdometry(new Pose2d(1.90, 5.32, Rotation2d.fromDegrees(0)));
+        String pathName = SmartDashboard.getString("Path to Test", "Test Path"); 
+        PathUtilities.makePath(pathName, _drive).schedule();
+      }))
+      .onFalse(new InstantCommand(_drive::stopMotors, _drive));
+      // .onFalse(new InstantCommand(() -> {
+      //   _drive.stopMotors();
+      // }));
 
     // m_driverController.povUp()
     //   .whileTrue(new TestFollowCommand());
