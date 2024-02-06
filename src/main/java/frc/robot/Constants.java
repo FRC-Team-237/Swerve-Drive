@@ -21,7 +21,7 @@ import edu.wpi.first.math.util.Units;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
-  public static final LoggingType logLevel = LoggingType.SMART_DASH; 
+  public static final LoggingType logLevel = LoggingType.NO_LOGGING; 
   public static enum LoggingType {
     NO_LOGGING,
     SMART_DASH,
@@ -104,5 +104,15 @@ public static class SwerveChassis {
     }  
 }
 
+  public static class Mechanism {
+    public static int kShooterLowMotorId = 20;
+    public static int kShooterHighMotorId = 21;
+    public static int kShooterFeederMotorId = 22;
 
+    public static double kShooterMaxTargetRPM = 4500;
+    // public static double kShooterMaxTargetRPM = 1.0;
+    public static double kIntakeMultiplier = 0.15;
+    public static double kSpitTargetRPM = 0.2;
+    public static double kShooterFeedMultiplier = 0.5;
+  }
 }
