@@ -8,7 +8,7 @@ import frc.robot.Constants.OperatorConstants;
 import frc.robot.Utilities.PathUtilities;
 import frc.robot.commands.Autos;
 import frc.robot.commands.ExampleCommand;
-import frc.robot.commands.TestFollowCommand;
+// import frc.robot.commands.TestFollowCommand;
 import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.ExampleSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
@@ -136,8 +136,8 @@ public class RobotContainer {
       _shooter.feed(0.0);
     }));
 
-    m_driverController.povUp()
-      .whileTrue(new TestFollowCommand());
+    // m_driverController.povUp()
+    //   .whileTrue(new TestFollowCommand());
   }
 
   public Command getTestPathCommand() {
