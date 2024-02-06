@@ -8,6 +8,7 @@ import frc.robot.Constants.OperatorConstants;
 import frc.robot.Utilities.PathUtilities;
 import frc.robot.commands.Autos;
 import frc.robot.commands.ExampleCommand;
+// import frc.robot.commands.TestFollowCommand;
 import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.ExampleSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
@@ -15,6 +16,7 @@ import frc.robot.subsystems.ShooterSubsystem;
 import com.ctre.phoenix.music.Orchestra;
 
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.event.EventLoop;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -38,8 +40,8 @@ public class RobotContainer {
   private final CommandXboxController m_driverController =
       new CommandXboxController(OperatorConstants.kXboxControllerPort);
   private final Joystick _logitechJoystick = new Joystick(OperatorConstants.kLogitechControllerPort);
-  private final JoystickButton _button = new JoystickButton(_logitechJoystick, 1); 
-
+  private final JoystickButton _button = new JoystickButton(_logitechJoystick, 1);
+  private final Joystick _3AxisJoystick = new Joystick(1);
 
   private boolean fieldCentric;
   private final ShooterSubsystem _shooter = new ShooterSubsystem();
@@ -48,31 +50,38 @@ public class RobotContainer {
     // Configure the trigger bindings
     SmartDashboard.putString("Path to Test", "Test Path"); 
     configureBindings();
+    _drive.setDefaultCommand((new InstantCommand(() -> {
+      double shootPower = m_driverController.getRightTriggerAxis() * Constants.Mechanism.kShooterMaxTargetRPM;
+      // power -= m_driverController.getLeftTriggerAxis() * Constants.Mechanism.kIntakeMultiplier;
 
-    // _shooter.setDefaultCommand(new InstantCommand(() -> {
-    //   double power = 0.0;
+      if(m_driverController.leftBumper().getAsBoolean()) {
+        shootPower = -Constants.Mechanism.kIntakeMultiplier * Constants.Mechanism.kShooterMaxTargetRPM;
+      } else if(m_driverController.rightBumper().getAsBoolean()) {
+        shootPower = Constants.Mechanism.kSpitTargetRPM;
+      }
 
-    //   power += m_driverController.getRightTriggerAxis();
-    //   power -= m_driverController.getLeftTriggerAxis();
+      _shooter.output(shootPower);
 
-    //   _shooter.output(power * 0.5);
-    // }, _shooter).repeatedly());
+      // double feedPower = m_driverController.getLeftTriggerAxis() * Constants.Mechanism.kShooterFeedMultiplier;
+      // double feedPower = m_driverController.getLeftTriggerAxis() > 0.5 ? Constants.Mechanism.kShooterFeedMultiplier : 0.0;
 
-    _drive.setDefaultCommand((new InstantCommand(
-      () -> 
-    {
+      boolean feed = m_driverController.a().getAsBoolean();
+      double feedPower = feed ? 0.5 : 0.0;
 
-      double power = 0.0;
+      SmartDashboard.putBoolean("Shooter/Feed", feed);
 
-      power += m_driverController.getRightTriggerAxis();
-      power -= m_driverController.getLeftTriggerAxis();
+      _shooter.feed(feedPower);
 
-      _shooter.output(power * 0.5);
-      // double velocityX = -_logitechJoystick.getY() * Constants.SwerveChassis.kMaxVelocity;
-      // double velocityY = -_logitechJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
       double velocityX = -m_driverController.getLeftY() * Constants.SwerveChassis.kMaxVelocity;
       double velocityY = -m_driverController.getLeftX() * Constants.SwerveChassis.kMaxVelocity;
       double rot = m_driverController.getRightX();
+
+      if(_3AxisJoystick.isConnected()) {
+        velocityX = -_3AxisJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
+        velocityY = _3AxisJoystick.getY() * Constants.SwerveChassis.kMaxVelocity;
+        rot = _3AxisJoystick.getZ();
+      }
+
       rot = Math.abs(rot) > 0.2 ? rot : 0;
       rot /= 4.0;
       rot *= Math.abs(rot);
@@ -120,6 +129,15 @@ public class RobotContainer {
         fieldCentric = !fieldCentric;
         System.out.println("Toggled field centric");
       }));
+    
+    m_driverController.x().onTrue(new InstantCommand(() -> {
+      _shooter.feed(0.5);
+    })).onFalse(new InstantCommand(() -> {
+      _shooter.feed(0.0);
+    }));
+
+    // m_driverController.povUp()
+    //   .whileTrue(new TestFollowCommand());
   }
 
   public Command getTestPathCommand() {
