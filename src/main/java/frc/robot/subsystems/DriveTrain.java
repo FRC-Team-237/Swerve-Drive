@@ -37,6 +37,7 @@ public class DriveTrain extends SubsystemBase {
   
   private StructArrayPublisher<SwerveModuleState> _swerveStatesPub; 
   private StructPublisher<Pose2d> _posePub; 
+  private StructPublisher<Pose2d> _estimatedPub; 
   
   public DriveTrain() {
     this.setName("Drive Train");
@@ -55,7 +56,7 @@ public class DriveTrain extends SubsystemBase {
     
     _swervePoseEstimator = new SwerveDrivePoseEstimator(Constants.SwerveChassis.SWERVE_KINEMATICS, Rotation2d.fromDegrees(0), getEstimatedPosition(), new Pose2d(1, 3, Rotation2d.fromDegrees(0))); 
     AutoBuilder.configureHolonomic(
-      this::getPose2d, 
+      this::getPoseEstimate, 
       this::resetPoseEstimator,
       this::getRobotRelativeSpeeds,
       this::driveRobotRelative,
@@ -75,7 +76,9 @@ public class DriveTrain extends SubsystemBase {
     PathPlannerLogging.setLogActivePathCallback((poses) -> _field.getObject("path").setPoses(poses));
     // Set up Publishers 
     _swerveStatesPub = NetworkTableInstance.getDefault().getStructArrayTopic("TargetStates", SwerveModuleState.struct).publish(); 
-    _posePub = NetworkTableInstance.getDefault().getStructTopic("Target Pose", Pose2d.struct).publish(); 
+    _posePub = NetworkTableInstance.getDefault().getStructTopic("Pose", Pose2d.struct).publish(); 
+    _estimatedPub = NetworkTableInstance.getDefault().getStructTopic("Target Pose", Pose2d.struct).publish(); 
+
   }
   private SwerveModulePosition[] getEstimatedPosition() {
     SwerveModulePosition[] positions = new SwerveModulePosition[4];
@@ -171,9 +174,11 @@ public class DriveTrain extends SubsystemBase {
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
-    _swervePoseEstimator.update(Rotation2d.fromDegrees(_imu.getAngle(_imu.getYawAxis())), getPositions()); 
+    _swervePoseEstimator.update(Rotation2d.fromDegrees(_imu.getAngle(_imu.getYawAxis())), getEstimatedPosition()); 
+    _swerveDriveOdometry.update(Rotation2d.fromDegrees(_imu.getAngle(_imu.getYawAxis())), getPositions()); 
     _swerveStatesPub.set(getStates());
-    _posePub.set(_swervePoseEstimator.getEstimatedPosition());
+    _posePub.set(getPose2d());
+    _estimatedPub.set(_swervePoseEstimator.getEstimatedPosition()); 
   }
    /**
    * This method updates swerve odometry. Note that we do not update it in a
@@ -217,7 +222,7 @@ public class DriveTrain extends SubsystemBase {
   public void stopMotors(){
     for (SwerveModule mod: _swerveModules)
     {
-      mod.testAngleMotor(0.0);
+      drive(0, 0, 0, false);
     }
   }
   public boolean flipPath(){

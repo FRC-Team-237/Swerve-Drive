@@ -13,6 +13,8 @@ import frc.robot.subsystems.ExampleSubsystem;
 
 import com.ctre.phoenix.music.Orchestra;
 
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -38,7 +40,7 @@ public class RobotContainer {
       new CommandXboxController(OperatorConstants.kXboxControllerPort);
   private final Joystick _logitechJoystick = new Joystick(OperatorConstants.kLogitechControllerPort);
   private final JoystickButton _button = new JoystickButton(_logitechJoystick, 1); 
-
+  private final JoystickButton _resetPose = new JoystickButton(_logitechJoystick, 2); 
   private boolean fieldCentric;
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
@@ -89,13 +91,19 @@ public class RobotContainer {
         .onTrue(new ExampleCommand(m_exampleSubsystem));
 
     // Test path following. 
-    m_driverController.b()
+    //m_driverController.b()
+    _button
       .onTrue(new InstantCommand(() -> {
         String pathName = SmartDashboard.getString("Path to Test", "Test Path"); 
         PathUtilities.makePath(pathName, _drive).schedule(); 
       }))
       .onFalse(new InstantCommand(_drive::stopMotors, _drive)); 
-    
+    _resetPose.onTrue(new InstantCommand(() -> {
+      _drive.stopMotors();
+      Pose2d startPose = new Pose2d(2, 7, Rotation2d.fromDegrees(0)); 
+      _drive.resetPoseEstimator(startPose);
+      _drive.resetOdometry(startPose);
+    } , _drive)); 
     m_driverController.y()
       .onTrue(new InstantCommand(() -> {
         fieldCentric = !fieldCentric;
