@@ -32,7 +32,12 @@ public final class Constants {
     public static final int kXboxControllerPort = 5;
     public static final int kLogitechControllerPort = 0;
   }
-
+public static class IntakeConstants {
+  public static final int kDeployMotorId = 14; 
+  public static final int kIntakeMotorId = 0; 
+  public static final double kDeployedPos = 100.0; 
+  public static final double kRetractedPos = 10.0; 
+}
 public static class SwerveChassis {
 
     public static final double kADrive = 0;
