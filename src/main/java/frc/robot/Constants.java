@@ -112,7 +112,7 @@ public static class SwerveChassis {
     public static double kShooterMaxTargetRPM = 4500;
     // public static double kShooterMaxTargetRPM = 1.0;
     public static double kIntakeMultiplier = 0.15;
-    public static double kSpitTargetRPM = 0.2;
-    public static double kShooterFeedMultiplier = 0.5;
+    public static double kSpitMultiplier = 0.2;
+    public static double kShooterFeedMultiplier = 0.9;
   }
 }
