@@ -52,28 +52,6 @@ public class RobotContainer {
     // Configure the trigger bindings
     SmartDashboard.putString("Path to Test", "Test Path"); 
     configureBindings();
-    _drive.setDefaultCommand((new InstantCommand(() -> {
-      double shootPower = m_driverController.getRightTriggerAxis() * Constants.Mechanism.kShooterMaxTargetRPM;
-      // power -= m_driverController.getLeftTriggerAxis() * Constants.Mechanism.kIntakeMultiplier;
-
-      if(m_driverController.leftBumper().getAsBoolean()) {
-        shootPower = -Constants.Mechanism.kIntakeMultiplier * Constants.Mechanism.kShooterMaxTargetRPM;
-      } else if(m_driverController.rightBumper().getAsBoolean()) {
-        shootPower = Constants.Mechanism.kSpitTargetRPM;
-      }
-
-      _shooter.output(shootPower);
-
-      // double feedPower = m_driverController.getLeftTriggerAxis() * Constants.Mechanism.kShooterFeedMultiplier;
-      // double feedPower = m_driverController.getLeftTriggerAxis() > 0.5 ? Constants.Mechanism.kShooterFeedMultiplier : 0.0;
-
-      boolean feed = m_driverController.a().getAsBoolean();
-      double feedPower = feed ? 0.5 : 0.0;
-
-      SmartDashboard.putBoolean("Shooter/Feed", feed);
-
-      _shooter.feed(feedPower);
-
 
     _drive.setDefaultCommand((new InstantCommand(
       () -> 
