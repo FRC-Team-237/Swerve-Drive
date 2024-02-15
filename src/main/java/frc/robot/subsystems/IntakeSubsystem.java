@@ -58,6 +58,10 @@ public class IntakeSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("Intake/Power", 0.5); 
     updateDashboardValues(); 
   }
+
+  public void setBrake(boolean brake) {
+    m_deployMotor.setIdleMode(IdleMode.kBrake);
+  }
   
   private void updateDashboardValues() {
     double P = SmartDashboard.getNumber("Intake/P", 0.0);
@@ -80,31 +84,47 @@ public class IntakeSubsystem extends SubsystemBase {
   public void stopPositionMotor(){
     m_deployMotor.stopMotor();
   }
+  public void stopIntakeMotor() {
+    m_intakeMotor.set(0.0);
+  }
+
+  public void movePositionMotor(double speed) {
+    m_deployMotor.set(speed);
+  }
 /**
  * Returns the command associated with the given action state.
  * 
  * @param state the action state
  * @return the command associated with the action state
- */  public Command getActionCommand(Action state){
+ */
+  public Command getActionCommand(Action state){
     switch (state){
-      case INTAKE:
-      return new InstantCommand(() -> {
-        this.setPosition(Constants.IntakeConstants.kDeployedPos);
-        this.setIntakeMotor(0.0);
-      }, (Subsystem) this); 
-      case LOAD:
-      return new InstantCommand(() -> {
-        this.setPosition(Constants.IntakeConstants.kRetractedPos);
-        this.setIntakeMotor(m_intakePower);
-      }, (Subsystem) this); 
-      case EJECT:
-      return new InstantCommand(() -> this.setPosition(Constants.IntakeConstants.kDeployedPos), (Subsystem)this)
-      .andThen(new WaitCommand(0.5))
-      .andThen(() -> this.setIntakeMotor(-m_intakePower),(Subsystem)this); 
-      case FIRE:
-      return new WaitUntilCommand(this::inFirePosition).andThen(()-> setIntakeMotor(-m_intakePower), (Subsystem) this); 
-      default:
-      return new InstantCommand(); 
+
+      case INTAKE: {
+        return new InstantCommand(() -> {
+          this.setPosition(Constants.IntakeConstants.kDeployedPos);
+          this.setIntakeMotor(m_intakePower);
+        }, (Subsystem) this); 
+      }
+
+      case LOAD: {
+        return new InstantCommand(() -> {
+          this.setPosition(Constants.IntakeConstants.kRetractedPos);
+          this.setIntakeMotor(0.0);
+        }, (Subsystem) this); 
+      }
+
+      case EJECT: {
+        return new InstantCommand(() -> this.setPosition(Constants.IntakeConstants.kDeployedPos), (Subsystem)this)
+        .andThen(new WaitCommand(0.5))
+        .andThen(() -> this.setIntakeMotor(-m_intakePower),(Subsystem)this); 
+      }
+
+      case FIRE: {
+        return new WaitUntilCommand(this::inFirePosition).andThen(()-> setIntakeMotor(-m_intakePower), (Subsystem) this); 
+      }
+
+      default: return new InstantCommand(); 
     }
   }
   public boolean inFirePosition()
@@ -113,6 +133,7 @@ public class IntakeSubsystem extends SubsystemBase {
   }
   @Override
   public void periodic() {
+    SmartDashboard.putNumber("Intake/Deploy Position", m_deployEncoder.getPosition());
     // This method will be called once per scheduler run
   }
 }
