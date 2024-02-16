@@ -12,13 +12,11 @@ import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.ExampleSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
-import frc.robot.subsystems.IntakeSubsystem.Action;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -48,7 +46,7 @@ public class RobotContainer {
     // Configure the trigger bindings
     SmartDashboard.putString("Path to Test", "Test Path");
     configureBindings();
-    _drive.setDefaultCommand((new InstantCommand(() -> {
+    _drive.setDefaultCommand((new RunCommand(() -> {
       double velocityX = -m_driverController.getLeftY() * Constants.SwerveChassis.kMaxVelocity;
       double velocityY = -m_driverController.getLeftX() * Constants.SwerveChassis.kMaxVelocity;
       double rot = m_driverController.getRightX();
@@ -76,7 +74,7 @@ public class RobotContainer {
         rot,
         fieldCentric
       );
-    }, _drive, _shooter)).repeatedly());
+    }, _drive)));
   }
 
   /**
