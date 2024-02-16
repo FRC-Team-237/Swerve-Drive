@@ -48,10 +48,12 @@ public class IntakeSubsystem extends SubsystemBase {
   /** Creates a new IntakeSubsystem. */
   public IntakeSubsystem() {
     m_deployMotor = new CANSparkMax(Constants.IntakeConstants.kDeployMotorId, MotorType.kBrushless); 
+    m_deployMotor.setInverted(true);
     m_gamePieceSensor = new DigitalInput(Constants.IntakeConstants.kGamePieceSensorPort); 
     m_deployController = m_deployMotor.getPIDController(); 
     m_deployEncoder = m_deployMotor.getEncoder(); 
     m_deployController.setFeedbackDevice(m_deployEncoder); 
+    m_deployController.setOutputRange(-0.2, 0.2); 
     m_deployMotor.setIdleMode(IdleMode.kBrake); 
     m_intakeMotor = new PWMVictorSPX(Constants.IntakeConstants.kIntakeMotorId); 
     SmartDashboard.putNumber("Intake/P", 0.0);
@@ -108,7 +110,7 @@ public class IntakeSubsystem extends SubsystemBase {
         return new InstantCommand(() -> {
           this.setPosition(Constants.IntakeConstants.kDeployedPos);
           this.setIntakeMotor(m_intakePower);
-        }, (Subsystem) this); 
+        }, (Subsystem) this).until(this::hasGamePiece).andThen(this::stopIntakeMotor); 
       }
 
       case LOAD: {
