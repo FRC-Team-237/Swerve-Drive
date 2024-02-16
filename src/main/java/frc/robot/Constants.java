@@ -21,7 +21,7 @@ import edu.wpi.first.math.util.Units;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
-  public static final LoggingType logLevel = LoggingType.NO_LOGGING; 
+  public static final LoggingType logLevel = LoggingType.SMART_DASH; 
   public static enum LoggingType {
     NO_LOGGING,
     SMART_DASH,
@@ -33,7 +33,7 @@ public final class Constants {
     public static final int kLogitechControllerPort = 0;
   }
 public static class IntakeConstants {
-  public static final int kDeployMotorId = 14; 
+  public static final int kDeployMotorId = 23; 
   public static final int kIntakeMotorId = 0; 
   public static final double kDeployedPos = 100.0; 
   public static final double kRetractedPos = 10.0;
@@ -53,7 +53,7 @@ public static class SwerveChassis {
     private static final double WHEEL_BASE = 22; 
     // max speed in meters per second. 
     public static double kWheelRadius = Units.inchesToMeters(2.0);  
-    public static double kMaxVelocity = 1.0; 
+    public static double kMaxVelocity = 2.0; 
     public static double kMaxRotationsPerSec = kMaxVelocity/(2*Math.PI*kWheelRadius);
     public static double degreesPerRotation = 30.0;
     public static double degreesPerTick = 360.0/degreesPerRotation;  

@@ -7,6 +7,7 @@ package frc.robot.subsystems;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.CANSparkBase;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.REVPhysicsSim;
@@ -16,6 +17,8 @@ import com.revrobotics.SparkPIDController;
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
+import com.revrobotics.SparkAbsoluteEncoder.Type;
+
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
@@ -31,6 +34,7 @@ public class SwerveModule extends SubsystemBase {
   private TalonFX _driveMotor;
   private CANSparkMax _angleMotor;
   private RelativeEncoder _angleEncoder;
+  private AbsoluteEncoder _absAngleEncoder;
   private ModPosition _podPos;
   private SparkPIDController _anglePID;
   private SwerveModuleState _targetState;
@@ -96,6 +100,7 @@ public class SwerveModule extends SubsystemBase {
     _angleMotor.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus3, 500);
     _angleEncoder = _angleMotor.getEncoder();
     _angleEncoder.setPositionConversionFactor(Constants.SwerveChassis.kAngleConversionFactor); 
+    _absAngleEncoder = _angleMotor.getAbsoluteEncoder(Type.kDutyCycle);
     // _angleEncoder = _angleMotor.getAbsoluteEncoder(Type.kDutyCycle);
     _anglePID = _angleMotor.getPIDController();
     _anglePID.setFeedbackDevice(_angleEncoder);
@@ -216,6 +221,7 @@ public class SwerveModule extends SubsystemBase {
         SmartDashboard.putNumber(_podPos.name() + "/Current Module State/Angle", _currentState.angle.getDegrees());
         SmartDashboard.putNumber(_podPos.name() + "/Current Module State/Speed(m per S)", _currentState.speedMetersPerSecond);
         SmartDashboard.putNumber(_podPos.name() + "/Angle Motor Output", _angleMotor.get());
+        SmartDashboard.putNumber(_podPos.name() + "/Absolute Angle Position", _absAngleEncoder.getPosition());
 
         break;
       case PRINT:

@@ -10,14 +10,13 @@ import frc.robot.commands.Autos;
 import frc.robot.commands.ExampleCommand;
 import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.ExampleSubsystem;
+import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
-
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -38,6 +37,7 @@ public class RobotContainer {
   private final Joystick _logitechJoystick = new Joystick(OperatorConstants.kLogitechControllerPort);
   private final JoystickButton _button = new JoystickButton(_logitechJoystick, 1);
   private final Joystick _3AxisJoystick = new Joystick(1);
+  public final IntakeSubsystem _intake = new IntakeSubsystem();
 
   private boolean fieldCentric;
   private final ShooterSubsystem _shooter = new ShooterSubsystem();
@@ -46,7 +46,7 @@ public class RobotContainer {
     // Configure the trigger bindings
     SmartDashboard.putString("Path to Test", "Test Path");
     configureBindings();
-    _drive.setDefaultCommand((new InstantCommand(() -> {
+    _drive.setDefaultCommand((new RunCommand(() -> {
       double velocityX = -m_driverController.getLeftY() * Constants.SwerveChassis.kMaxVelocity;
       double velocityY = -m_driverController.getLeftX() * Constants.SwerveChassis.kMaxVelocity;
       double rot = m_driverController.getRightX();
@@ -74,7 +74,7 @@ public class RobotContainer {
         rot,
         fieldCentric
       );
-    }, _drive, _shooter)).repeatedly());
+    }, _drive)));
   }
 
   /**
@@ -105,13 +105,13 @@ public class RobotContainer {
         System.out.println("Toggled field centric");
       }));
 
-    m_driverController.povDown()
-      .onTrue(new InstantCommand(() -> {
-        _drive.resetOdometry(new Pose2d(1.90, 5.32, Rotation2d.fromDegrees(0)));
-        String pathName = SmartDashboard.getString("Path to Test", "Test Path"); 
-        PathUtilities.makePath(pathName, _drive).schedule();
-      }))
-      .onFalse(new InstantCommand(_drive::stopMotors, _drive));
+    // m_driverController.povDown()
+    //   .onTrue(new InstantCommand(() -> {
+    //     _drive.resetOdometry(new Pose2d(1.90, 5.32, Rotation2d.fromDegrees(0)));
+    //     String pathName = SmartDashboard.getString("Path to Test", "Test Path"); 
+    //     PathUtilities.makePath(pathName, _drive).schedule();
+    //   }))
+    //   .onFalse(new InstantCommand(_drive::stopMotors, _drive));
       // .onFalse(new InstantCommand(() -> {
       //   _drive.stopMotors();
       // }));
@@ -134,6 +134,37 @@ public class RobotContainer {
     m_driverController.a()
       .onTrue(new InstantCommand(_shooter::feed))
       .onFalse(new InstantCommand(_shooter::stopFeed));
+    
+    m_driverController.povUp()
+      .onTrue(new InstantCommand(() -> _intake.movePositionMotor(0.2)))
+      .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
+    
+    m_driverController.povDown()
+      .onTrue(new InstantCommand(() -> _intake.movePositionMotor(-0.2)))
+      .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
+    
+    m_driverController.povRight()
+      .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(1)))
+      .onFalse(new InstantCommand(() -> _intake.setIntakeMotor(0)));
+
+    m_driverController.povLeft()
+      .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(-1)))
+      .onFalse(new InstantCommand(() -> _intake.setIntakeMotor(0)));
+
+    // m_driverController.povUp()
+    //   .onTrue(_intake.getActionCommand(Action.EJECT))
+    //   .onFalse(new InstantCommand(_intake::stopIntakeMotor));
+    
+    // m_driverController.povDown()
+    //   .onTrue(_intake.getActionCommand(Action.FIRE))
+    //   .onFalse(new InstantCommand(_intake::stopIntakeMotor));
+    
+    // m_driverController.povLeft()
+    //   .onTrue(_intake.getActionCommand(Action.INTAKE))
+    //   .onFalse(new InstantCommand(_intake::stopIntakeMotor));
+      
+    // m_driverController.povRight()
+    // .onTrue(_intake.getActionCommand(Action.LOAD));
   }
 
   public Command getTestPathCommand() {
