@@ -54,9 +54,10 @@ public class IntakeSubsystem extends SubsystemBase {
     m_deployEncoder = m_deployMotor.getEncoder(); 
     m_deployController.setFeedbackDevice(m_deployEncoder); 
     m_deployController.setOutputRange(-0.2, 0.2); 
-    m_deployMotor.setIdleMode(IdleMode.kBrake); 
-    m_intakeMotor = new PWMVictorSPX(Constants.IntakeConstants.kIntakeMotorId); 
-    SmartDashboard.putNumber("Intake/P", 0.0);
+    m_deployMotor.setIdleMode(IdleMode.kBrake);
+    m_deployEncoder.setPosition(0); 
+    m_intakeMotor = new PWMVictorSPX(Constants.IntakeConstants.kIntakeMotorId);
+    SmartDashboard.putNumber("Intake/P", 0.01);
     SmartDashboard.putNumber("Intake/I", 0.0);
     SmartDashboard.putNumber("Intake/D", 0.0);
     SmartDashboard.putNumber("Intake/FF", 0.00018125);   

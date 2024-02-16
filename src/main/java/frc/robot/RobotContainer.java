@@ -6,10 +6,7 @@ package frc.robot;
 
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.Utilities.PathUtilities;
-import frc.robot.commands.Autos;
-import frc.robot.commands.ExampleCommand;
 import frc.robot.subsystems.DriveTrain;
-import frc.robot.subsystems.ExampleSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import edu.wpi.first.wpilibj.Joystick;
@@ -29,7 +26,6 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
  */
 public class RobotContainer {
   // The robot's subsystems and commands are defined here...
-  private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
   public final DriveTrain _drive = new DriveTrain(); 
   // Replace with CommandPS4Controller or CommandJoystick if needed
   private final CommandXboxController m_driverController =
@@ -87,10 +83,6 @@ public class RobotContainer {
    * joysticks}.
    */
   private void configureBindings() {
-    // Schedule `ExampleCommand` when `exampleCondition` changes to `true`
-    new Trigger(m_exampleSubsystem::exampleCondition)
-        .onTrue(new ExampleCommand(m_exampleSubsystem));
-
     // Test path following. 
     m_driverController.b()
       .onTrue(new InstantCommand(() -> {
@@ -135,21 +127,25 @@ public class RobotContainer {
       .onTrue(new InstantCommand(_shooter::feed))
       .onFalse(new InstantCommand(_shooter::stopFeed));
     
-    m_driverController.povUp()
-      .onTrue(new InstantCommand(() -> _intake.movePositionMotor(0.2)))
-      .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
+    // m_driverController.povDown()
+    //   .onTrue(new InstantCommand(() -> _intake.movePositionMotor(0.2)))
+    //   .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
     
-    m_driverController.povDown()
+    m_driverController.povUp()
       .onTrue(new InstantCommand(() -> _intake.movePositionMotor(-0.2)))
       .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
-    
-    m_driverController.povRight()
-      .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(1)))
-      .onFalse(new InstantCommand(() -> _intake.setIntakeMotor(0)));
 
-    m_driverController.povLeft()
-      .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(-1)))
-      .onFalse(new InstantCommand(() -> _intake.setIntakeMotor(0)));
+    m_driverController.povDown()
+      .onTrue(new InstantCommand(() -> _intake.setPosition(Constants.IntakeConstants.kDeployedPos)))
+      .onFalse(new InstantCommand(_intake::stopPositionMotor));
+    
+    // m_driverController.povRight()
+    //   .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(1)))
+    //   .onFalse(new InstantCommand(() -> _intake.setIntakeMotor(0)));
+
+    // m_driverController.povLeft()
+    //   .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(-1)))
+    //   .onFalse(new InstantCommand(() -> _intake.setIntakeMotor(0)));
 
     // m_driverController.povUp()
     //   .onTrue(_intake.getActionCommand(Action.EJECT))
@@ -179,6 +175,6 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // An example command will be run in autonomous
-    return Autos.exampleAuto(m_exampleSubsystem);
+    return new InstantCommand();
   }
 }
