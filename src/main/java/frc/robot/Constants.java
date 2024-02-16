@@ -36,7 +36,8 @@ public static class IntakeConstants {
   public static final int kDeployMotorId = 14; 
   public static final int kIntakeMotorId = 0; 
   public static final double kDeployedPos = 100.0; 
-  public static final double kRetractedPos = 10.0; 
+  public static final double kRetractedPos = 10.0;
+public static int kGamePieceSensorPort = 0; 
 }
 public static class SwerveChassis {
 

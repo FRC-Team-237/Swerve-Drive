@@ -11,6 +11,7 @@ import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -37,6 +38,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private RelativeEncoder m_deployEncoder; 
   private PWMVictorSPX m_intakeMotor; 
   private double m_intakePower = 0.0; 
+  private DigitalInput m_gamePieceSensor;
   public enum Action {
     INTAKE, 
     EJECT, 
@@ -46,6 +48,7 @@ public class IntakeSubsystem extends SubsystemBase {
   /** Creates a new IntakeSubsystem. */
   public IntakeSubsystem() {
     m_deployMotor = new CANSparkMax(Constants.IntakeConstants.kDeployMotorId, MotorType.kBrushless); 
+    m_gamePieceSensor = new DigitalInput(Constants.IntakeConstants.kGamePieceSensorPort); 
     m_deployController = m_deployMotor.getPIDController(); 
     m_deployEncoder = m_deployMotor.getEncoder(); 
     m_deployController.setFeedbackDevice(m_deployEncoder); 
@@ -56,6 +59,7 @@ public class IntakeSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("Intake/D", 0.0);
     SmartDashboard.putNumber("Intake/FF", 0.00018125);   
     SmartDashboard.putNumber("Intake/Power", 0.5); 
+
     updateDashboardValues(); 
   }
   
@@ -110,6 +114,9 @@ public class IntakeSubsystem extends SubsystemBase {
   public boolean inFirePosition()
   {
     return Math.abs(m_deployEncoder.getPosition() - Constants.IntakeConstants.kRetractedPos) < 5; 
+  }
+  public boolean hasGamePiece(){
+    return m_gamePieceSensor.get(); 
   }
   @Override
   public void periodic() {
