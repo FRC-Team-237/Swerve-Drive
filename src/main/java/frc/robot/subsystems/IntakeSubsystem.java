@@ -16,6 +16,7 @@ import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
@@ -53,7 +54,7 @@ public class IntakeSubsystem extends SubsystemBase {
     m_deployController = m_deployMotor.getPIDController(); 
     m_deployEncoder = m_deployMotor.getEncoder(); 
     m_deployController.setFeedbackDevice(m_deployEncoder); 
-    m_deployController.setOutputRange(-0.2, 0.2); 
+    m_deployController.setOutputRange(-0.3, 0.3); 
     m_deployMotor.setIdleMode(IdleMode.kBrake);
     m_deployEncoder.setPosition(0); 
     m_intakeMotor = new PWMVictorSPX(Constants.IntakeConstants.kIntakeMotorId);
@@ -110,8 +111,11 @@ public class IntakeSubsystem extends SubsystemBase {
       case INTAKE: {
         return new InstantCommand(() -> {
           this.setPosition(Constants.IntakeConstants.kDeployedPos);
-          this.setIntakeMotor(m_intakePower);
-        }, (Subsystem) this).until(this::hasGamePiece).andThen(this::stopIntakeMotor); 
+        },(Subsystem) this)
+        .andThen(new RunCommand(() -> {
+          this.setIntakeMotor(1.0);
+        }, (Subsystem)this))
+        .until(this::hasGamePiece).andThen(this::stopIntakeMotor); 
       }
 
       case LOAD: {
@@ -136,7 +140,7 @@ public class IntakeSubsystem extends SubsystemBase {
   }
   public boolean inFirePosition()
   {
-    return Math.abs(m_deployEncoder.getPosition() - Constants.IntakeConstants.kRetractedPos) < 5; 
+    return Math.abs(m_deployEncoder.getPosition() - Constants.IntakeConstants.kRetractedPos) < 1; 
   }
   public boolean hasGamePiece(){
     return m_gamePieceSensor.get(); 
@@ -144,6 +148,7 @@ public class IntakeSubsystem extends SubsystemBase {
   @Override
   public void periodic() {
     SmartDashboard.putNumber("Intake/Deploy Position", m_deployEncoder.getPosition());
+    SmartDashboard.putBoolean("Intake/Has Note", hasGamePiece()); 
     // This method will be called once per scheduler run
   }
 }
