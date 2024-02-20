@@ -130,8 +130,14 @@ public class RobotContainer {
       .onFalse(new InstantCommand(_shooter::stopIntake));
     
     m_driverController.a()
-      .onTrue(new InstantCommand(_shooter::feed))
-      .onFalse(new InstantCommand(_shooter::stopFeed));
+      .onTrue(new InstantCommand(() -> {
+        _shooter.feed();
+        _intake.setIntakeMotor(-1.0);
+      }))
+      .onFalse(new InstantCommand(() -> {
+        _shooter.stopFeed();
+        _intake.setIntakeMotor(0);
+      }));
     
     // m_driverController.povDown()
     //   .onTrue(new InstantCommand(() -> _intake.movePositionMotor(0.2)))
@@ -145,14 +151,6 @@ public class RobotContainer {
       .onTrue(
         _intake.getActionCommand(Action.INTAKE)
         .andThen(_intake.getActionCommand(Action.LOAD))
-        .andThen(_intake.getActionCommand(Action.FIRE))
-        .andThen(new RunCommand(() -> {
-          _shooter.feed();
-        }, _shooter).deadlineWith(new WaitCommand(0.5)))
-        .andThen(() -> {
-            _shooter.stopFeed();
-          },_shooter
-        )
       )
       .onFalse(_intake.getActionCommand(Action.LOAD).andThen(() -> _shooter.stopFeed(),_shooter));
     
@@ -160,9 +158,9 @@ public class RobotContainer {
       .onTrue(new InstantCommand(_hanger::extend))
       .onFalse(new InstantCommand(_hanger::stop));
       
-      m_driverController.x()
-      .onTrue(new InstantCommand(_hanger::retract))
-      .onFalse(new InstantCommand(_hanger::stop));
+    m_driverController.x()
+    .onTrue(new InstantCommand(_hanger::retract))
+    .onFalse(new InstantCommand(_hanger::stop));
       
     // m_driverController.povRight()
     //   .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(1)))

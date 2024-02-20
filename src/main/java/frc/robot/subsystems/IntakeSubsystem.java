@@ -6,10 +6,12 @@ package frc.robot.subsystems;
 
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
+import com.revrobotics.SparkLimitSwitch;
 import com.revrobotics.SparkPIDController;
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
+import com.revrobotics.SparkLimitSwitch.Type;
 
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;
@@ -40,6 +42,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private PWMVictorSPX m_intakeMotor; 
   private double m_intakePower = 0.0; 
   private DigitalInput m_gamePieceSensor;
+  private SparkLimitSwitch m_reverseLimitSwitch; 
   public enum Action {
     INTAKE, 
     EJECT, 
@@ -50,15 +53,16 @@ public class IntakeSubsystem extends SubsystemBase {
   public IntakeSubsystem() {
     m_deployMotor = new CANSparkMax(Constants.IntakeConstants.kDeployMotorId, MotorType.kBrushless); 
     m_deployMotor.setInverted(true);
+    m_reverseLimitSwitch = m_deployMotor.getReverseLimitSwitch(Type.kNormallyOpen); 
     m_gamePieceSensor = new DigitalInput(Constants.IntakeConstants.kGamePieceSensorPort); 
     m_deployController = m_deployMotor.getPIDController(); 
     m_deployEncoder = m_deployMotor.getEncoder(); 
     m_deployController.setFeedbackDevice(m_deployEncoder); 
-    m_deployController.setOutputRange(-0.3, 0.3); 
+    m_deployController.setOutputRange(-0.5, 0.5);
     m_deployMotor.setIdleMode(IdleMode.kBrake);
     m_deployEncoder.setPosition(0); 
     m_intakeMotor = new PWMVictorSPX(Constants.IntakeConstants.kIntakeMotorId);
-    SmartDashboard.putNumber("Intake/P", 0.01);
+    SmartDashboard.putNumber("Intake/P", 0.02);
     SmartDashboard.putNumber("Intake/I", 0.0);
     SmartDashboard.putNumber("Intake/D", 0.0);
     SmartDashboard.putNumber("Intake/FF", 0.00018125);   
@@ -68,7 +72,7 @@ public class IntakeSubsystem extends SubsystemBase {
   }
 
   public void setBrake(boolean brake) {
-    m_deployMotor.setIdleMode(IdleMode.kBrake);
+    m_deployMotor.setIdleMode(brake ? IdleMode.kBrake : IdleMode.kCoast);
   }
   
   private void updateDashboardValues() {
@@ -140,7 +144,7 @@ public class IntakeSubsystem extends SubsystemBase {
   }
   public boolean inFirePosition()
   {
-    return Math.abs(m_deployEncoder.getPosition() - Constants.IntakeConstants.kRetractedPos) < 1; 
+    return Math.abs(m_deployEncoder.getPosition() - Constants.IntakeConstants.kRetractedPos) < 1 || m_reverseLimitSwitch.isPressed(); 
   }
   public boolean hasGamePiece(){
     return m_gamePieceSensor.get(); 
@@ -149,6 +153,10 @@ public class IntakeSubsystem extends SubsystemBase {
   public void periodic() {
     SmartDashboard.putNumber("Intake/Deploy Position", m_deployEncoder.getPosition());
     SmartDashboard.putBoolean("Intake/Has Note", hasGamePiece()); 
+    if (m_reverseLimitSwitch.isPressed())
+    {
+      m_deployEncoder.setPosition(0.0); 
+    }
     // This method will be called once per scheduler run
   }
 }
