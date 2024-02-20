@@ -7,6 +7,7 @@ package frc.robot;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.Utilities.PathUtilities;
 import frc.robot.subsystems.DriveTrain;
+import frc.robot.subsystems.HangerSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import edu.wpi.first.wpilibj.Joystick;
@@ -34,6 +35,7 @@ public class RobotContainer {
   private final JoystickButton _button = new JoystickButton(_logitechJoystick, 1);
   private final Joystick _3AxisJoystick = new Joystick(1);
   public final IntakeSubsystem _intake = new IntakeSubsystem();
+  private final HangerSubsystem _hanger = new HangerSubsystem();
 
   private boolean fieldCentric;
   private final ShooterSubsystem _shooter = new ShooterSubsystem();
@@ -84,18 +86,18 @@ public class RobotContainer {
    */
   private void configureBindings() {
     // Test path following. 
-    m_driverController.b()
-      .onTrue(new InstantCommand(() -> {
-        String pathName = SmartDashboard.getString("Path to Test", "Test Path"); 
-        PathUtilities.makePath(pathName, _drive).schedule(); 
-      }))
-      .onFalse(new InstantCommand(_drive::stopMotors, _drive)); 
+    // m_driverController.b()
+    //   .onTrue(new InstantCommand(() -> {
+    //     String pathName = SmartDashboard.getString("Path to Test", "Test Path"); 
+    //     PathUtilities.makePath(pathName, _drive).schedule(); 
+    //   }))
+    //   .onFalse(new InstantCommand(_drive::stopMotors, _drive)); 
     
-    m_driverController.y()
-      .onTrue(new InstantCommand(() -> {
-        fieldCentric = !fieldCentric;
-        System.out.println("Toggled field centric");
-      }));
+    // m_driverController.y()
+    //   .onTrue(new InstantCommand(() -> {
+    //     fieldCentric = !fieldCentric;
+    //     System.out.println("Toggled field centric");
+    //   }));
 
     // m_driverController.povDown()
     //   .onTrue(new InstantCommand(() -> {
@@ -139,6 +141,14 @@ public class RobotContainer {
       .onTrue(new InstantCommand(() -> _intake.setPosition(Constants.IntakeConstants.kDeployedPos)))
       .onFalse(new InstantCommand(_intake::stopPositionMotor));
     
+    m_driverController.y()
+      .onTrue(new InstantCommand(_hanger::extend))
+      .onFalse(new InstantCommand(_hanger::stop));
+      
+      m_driverController.x()
+      .onTrue(new InstantCommand(_hanger::retract))
+      .onFalse(new InstantCommand(_hanger::stop));
+      
     // m_driverController.povRight()
     //   .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(1)))
     //   .onFalse(new InstantCommand(() -> _intake.setIntakeMotor(0)));
