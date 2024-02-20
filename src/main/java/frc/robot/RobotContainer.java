@@ -10,11 +10,13 @@ import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.HangerSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
+import frc.robot.subsystems.IntakeSubsystem.Action;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -138,8 +140,19 @@ public class RobotContainer {
       .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
 
     m_driverController.povDown()
-      .onTrue(new InstantCommand(() -> _intake.setPosition(Constants.IntakeConstants.kDeployedPos)))
-      .onFalse(new InstantCommand(_intake::stopPositionMotor));
+      .onTrue(
+        _intake.getActionCommand(Action.INTAKE)
+        .andThen(_intake.getActionCommand(Action.LOAD))
+        .andThen(_intake.getActionCommand(Action.FIRE))
+        .andThen(new RunCommand(() -> {
+          _shooter.feed();
+        }, _shooter).deadlineWith(new WaitCommand(0.5)))
+        .andThen(() -> {
+            _shooter.stopFeed();
+          },_shooter
+        )
+      )
+      .onFalse(_intake.getActionCommand(Action.LOAD).andThen(() -> _shooter.stopFeed(),_shooter));
     
     m_driverController.y()
       .onTrue(new InstantCommand(_hanger::extend))
@@ -152,6 +165,23 @@ public class RobotContainer {
     // m_driverController.povRight()
     //   .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(1)))
     //   .onFalse(new InstantCommand(() -> _intake.setIntakeMotor(0)));
+     m_driverController.povRight()
+       .onTrue(
+        new InstantCommand(()->{
+          _shooter.shoot();
+        },_shooter)
+        .andThen(new WaitCommand(5))
+        .until(_shooter::atSpeed)
+        .andThen(()->{
+          _shooter.feed();
+          _intake.setIntakeMotor(-0.75);
+        },_shooter,_intake)
+       )
+       .onFalse(new InstantCommand(() -> {
+        _shooter.stopShoot();
+        _shooter.stopFeed();
+        _intake.stopIntakeMotor();
+       },_shooter,_intake));
 
     // m_driverController.povLeft()
     //   .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(-1)))
