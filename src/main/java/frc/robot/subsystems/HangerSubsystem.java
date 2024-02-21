@@ -24,12 +24,12 @@ public class HangerSubsystem extends SubsystemBase {
   }
 
   public void extend() {
-    hangarMotor.set(-0.25);
+    hangarMotor.set(-0.50);
     updateDashboardValues();
   }
 
   public void retract() {
-    hangarMotor.set(0.25);
+    hangarMotor.set(0.50);
     updateDashboardValues();
   }
 
