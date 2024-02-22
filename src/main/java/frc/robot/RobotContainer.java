@@ -12,6 +12,12 @@ import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.IntakeSubsystem.Action;
 import frc.robot.subsystems.IntakeSubsystem.Action;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import com.pathplanner.lib.auto.NamedCommands;
+
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -40,13 +46,14 @@ public class RobotContainer {
   private final Joystick _3AxisJoystick = new Joystick(1);
   public final IntakeSubsystem _intake = new IntakeSubsystem();
   private final HangerSubsystem _hanger = new HangerSubsystem();
-
+  private final Map<String,Command> _commandMap = new HashMap<String,Command>(); 
   private boolean fieldCentric;
   private final ShooterSubsystem _shooter = new ShooterSubsystem();
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     // Configure the trigger bindings
     SmartDashboard.putString("Path to Test", "Test Path");
+    setupNamedCommands();
     configureBindings();
     _drive.setDefaultCommand((new RunCommand(() -> {
       double velocityX = -m_driverController.getLeftY() * Constants.SwerveChassis.kMaxVelocity;
@@ -149,8 +156,7 @@ public class RobotContainer {
 
     m_driverController.povDown()
       .onTrue(
-        _intake.getActionCommand(Action.INTAKE)
-        .andThen(_intake.getActionCommand(Action.LOAD))
+        _commandMap.get("PickUpCommand")
       )
       .onFalse(_intake.getActionCommand(Action.LOAD).andThen(() -> _shooter.stopFeed(),_shooter));
     
@@ -162,20 +168,9 @@ public class RobotContainer {
     .onTrue(new InstantCommand(_hanger::retract))
     .onFalse(new InstantCommand(_hanger::stop));
       
-    // m_driverController.povRight()
-    //   .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(1)))
-    //   .onFalse(new InstantCommand(() -> _intake.setIntakeMotor(0)));
      m_driverController.povRight()
        .onTrue(
-        new InstantCommand(()->{
-          _shooter.shoot();
-        },_shooter)
-        .andThen(new WaitCommand(5))
-        .until(_shooter::atSpeed)
-        .andThen(()->{
-          _shooter.feed();
-          _intake.setIntakeMotor(-0.75);
-        },_shooter,_intake)
+        _commandMap.get("ShootCommand")
        )
        .onFalse(new InstantCommand(() -> {
         _shooter.stopShoot();
@@ -183,24 +178,6 @@ public class RobotContainer {
         _intake.stopIntakeMotor();
        },_shooter,_intake));
 
-    // m_driverController.povLeft()
-    //   .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(-1)))
-    //   .onFalse(new InstantCommand(() -> _intake.setIntakeMotor(0)));
-
-    // m_driverController.povUp()
-    //   .onTrue(_intake.getActionCommand(Action.EJECT))
-    //   .onFalse(new InstantCommand(_intake::stopIntakeMotor));
-    
-    // m_driverController.povDown()
-    //   .onTrue(_intake.getActionCommand(Action.FIRE))
-    //   .onFalse(new InstantCommand(_intake::stopIntakeMotor));
-    
-    // m_driverController.povLeft()
-    //   .onTrue(_intake.getActionCommand(Action.INTAKE))
-    //   .onFalse(new InstantCommand(_intake::stopIntakeMotor));
-      
-    // m_driverController.povRight()
-    // .onTrue(_intake.getActionCommand(Action.LOAD));
   }
 
   public Command getTestPathCommand() {
@@ -208,6 +185,56 @@ public class RobotContainer {
     System.out.println(pathName);
     return PathUtilities.makePath(pathName, _drive); 
   }
+
+  /**
+ * Sets up the named commands for the robot.
+ * 
+ * This method creates and registers several named commands for the robot. The named commands include:
+ * - TargetCommand: A command that does nothing and is used as a target for other commands.
+ * - ShootCommand: A command that shoots balls. It first calls the shoot method of the shooter subsystem, then waits for 5 seconds, checks if the shooter is at speed, and finally feeds balls into the shooter and sets the intake motor to -0.75.
+ * - PickUpCommand: A command that picks up notes. It first calls the intake action command with the INTAKE action, then calls the intake action command with the LOAD action.
+ * - EjectCommand: A command that ejects notes. It calls the intake action command with the EJECT action.
+ * 
+ * After creating and naming the commands, they are registered with the NamedCommands class for use with the path planner.
+ */
+  public void setupNamedCommands(){
+    
+    // Target command 
+    Command targetCommand = new InstantCommand(); 
+    targetCommand.setName("TargetCommand");
+    _commandMap.put(targetCommand.getName(),targetCommand); 
+    
+    // shoot command 
+    Command shootCommand = new InstantCommand(()->{
+          _shooter.shoot();
+        },_shooter)
+        // TODO: Investigate this The AI seems to think this will wait for 5 seconds regardless of if the shooter is up to speed. 
+        .andThen(new WaitCommand(5))
+        .until(_shooter::atSpeed)
+        .andThen(()->{
+          _shooter.feed();
+          _intake.setIntakeMotor(-0.75);
+        },_shooter,_intake); 
+    shootCommand.setName("ShootCommand");
+    _commandMap.put(shootCommand.getName(),shootCommand); 
+    
+    // Command to Pick up the notes
+    Command pickUpCommand = _intake.getActionCommand(Action.INTAKE)
+        .andThen(_intake.getActionCommand(Action.LOAD)); 
+    pickUpCommand.setName("PickUpCommand");
+    _commandMap.put(pickUpCommand.getName(),pickUpCommand);
+    // Command to Eject notes 
+    Command ejectCommand = _intake.getActionCommand(Action.EJECT); 
+    ejectCommand.setName("EjectCommand");
+    _commandMap.put(ejectCommand.getName(), ejectCommand); 
+    
+
+    // Register all Named commands for use with path planner. 
+    _commandMap.forEach((key,value)->{
+      NamedCommands.registerCommand(key, value);
+    });
+  }
+
   /**
    * Use this to pass the autonomous command to the main {@link Robot} class.
    *
