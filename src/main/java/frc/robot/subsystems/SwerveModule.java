@@ -12,7 +12,6 @@ import com.revrobotics.CANSparkBase;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.REVPhysicsSim;
 import com.revrobotics.CANSparkLowLevel;
-import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
@@ -33,7 +32,6 @@ public class SwerveModule extends SubsystemBase {
 
   private TalonFX _driveMotor;
   private CANSparkMax _angleMotor;
-  private RelativeEncoder _angleEncoder;
   private AbsoluteEncoder _absAngleEncoder;
   private ModPosition _podPos;
   private SparkPIDController _anglePID;
@@ -98,12 +96,11 @@ public class SwerveModule extends SubsystemBase {
     _angleMotor.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus1, 500);
     _angleMotor.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus2, 20);
     _angleMotor.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus3, 500);
-    _angleEncoder = _angleMotor.getEncoder();
-    _angleEncoder.setPositionConversionFactor(Constants.SwerveChassis.kAngleConversionFactor); 
+
     _absAngleEncoder = _angleMotor.getAbsoluteEncoder(Type.kDutyCycle);
-    // _angleEncoder = _angleMotor.getAbsoluteEncoder(Type.kDutyCycle);
+    _absAngleEncoder.setPositionConversionFactor(360);
     _anglePID = _angleMotor.getPIDController();
-    _anglePID.setFeedbackDevice(_angleEncoder);
+    _anglePID.setFeedbackDevice(_absAngleEncoder);
     _anglePID.setP(0.025);
     _anglePID.setI(0);
     _anglePID.setD(0.0);
@@ -115,7 +112,6 @@ public class SwerveModule extends SubsystemBase {
     _anglePID.setSmartMotionAllowedClosedLoopError(10.0,0);
     _anglePID.setSmartMotionMinOutputVelocity(10, 0);
     _angleMotor.setIdleMode(IdleMode.kBrake);
-    _angleEncoder.setPosition(0.0);
 
     _angleMotor.burnFlash();
   }
@@ -176,7 +172,7 @@ public class SwerveModule extends SubsystemBase {
 
   public SwerveModuleState getState() {
     double velocity = _driveMotor.getVelocity().getValue();
-    Rotation2d angle = Rotation2d.fromDegrees(_angleEncoder.getPosition());
+    Rotation2d angle = Rotation2d.fromDegrees(_absAngleEncoder.getPosition());
     return new SwerveModuleState(velocity, angle);
   }
 
@@ -208,10 +204,6 @@ public class SwerveModule extends SubsystemBase {
       case SMART_DASH:
         SmartDashboard.putNumber(_podPos.name() + "/Target Angle", _targetState.angle.getDegrees());
         SmartDashboard.putNumber(_podPos.name() + "/Target Velocity (m per s)", _targetState.speedMetersPerSecond);
-        SmartDashboard.putNumber(_podPos.name() + "/Reported Angle",
-            _angleEncoder.getPosition());
-        SmartDashboard.putNumber(_podPos.name() + "/Raw Angle Encoder",
-            _angleEncoder.getPosition());
         SmartDashboard.putNumber(_podPos.name() + "/Current PID setpoint:",
             _targetState.angle.getDegrees());
         SmartDashboard.putNumber(_podPos.name() + "/Rotations Per Second", talonSignal.getValue());
@@ -245,7 +237,7 @@ public class SwerveModule extends SubsystemBase {
     // This method will be called once per scheduler run
     
     var talonSignal = _driveMotor.getVelocity();
-    _currentState.angle = Rotation2d.fromDegrees(_angleEncoder.getPosition());
+    _currentState.angle = Rotation2d.fromDegrees(_absAngleEncoder.getPosition());
     double wheelRPS = talonSignal.getValue() / Constants.SwerveChassis.kDriveGearRatio;
     _currentState.speedMetersPerSecond = (wheelRPS) * 2 * Math.PI * Constants.SwerveChassis.kWheelRadius;
     log();
