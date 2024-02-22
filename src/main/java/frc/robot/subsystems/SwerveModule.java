@@ -83,7 +83,8 @@ public class SwerveModule extends SubsystemBase {
     config.Slot0.kV = Constants.SwerveChassis.kVDrive;
     config.Voltage.PeakForwardVoltage = Constants.SwerveChassis.kPeakForwardFF;
     config.Voltage.PeakReverseVoltage = Constants.SwerveChassis.kPeakReverseFF;
-
+    
+    
     _driveMotor.getConfigurator().apply(config);
     _driveMotor.setInverted(outputInverted);
   }
@@ -177,6 +178,7 @@ public class SwerveModule extends SubsystemBase {
   }
 
   public void setDesiredState(SwerveModuleState desiredState) {
+    // desiredState = SwerveModuleState.optimize(desiredState, getState().angle);
     _targetState = desiredState;
     VelocityVoltage vv = new VelocityVoltage(
       0.0,
@@ -189,8 +191,10 @@ public class SwerveModule extends SubsystemBase {
       false);
     vv.withVelocity(desiredState.speedMetersPerSecond / (2 * Math.PI * Constants.SwerveChassis.kWheelRadius)
         * Constants.SwerveChassis.kDriveGearRatio);
-    _driveMotor.setControl(vv);
-    
+    if (Math.abs(vv.Velocity) > 0.1 )
+      _driveMotor.setControl(vv);
+    else 
+      _driveMotor.stopMotor();
     _anglePID.setReference(desiredState.angle.getDegrees(), CANSparkBase.ControlType.kPosition);
 
     //log();
