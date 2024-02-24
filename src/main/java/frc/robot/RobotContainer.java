@@ -18,6 +18,8 @@ import java.util.Map;
 
 import com.pathplanner.lib.auto.NamedCommands;
 
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -44,6 +46,9 @@ public class RobotContainer {
   private final Joystick _logitechJoystick = new Joystick(OperatorConstants.kLogitechControllerPort);
   private final JoystickButton _button = new JoystickButton(_logitechJoystick, 1);
   private final Joystick _3AxisJoystick = new Joystick(1);
+
+  private final JoystickButton _resetPose = new JoystickButton(_logitechJoystick, 2); 
+
   public final IntakeSubsystem _intake = new IntakeSubsystem();
   private final HangerSubsystem _hanger = new HangerSubsystem();
   private final Map<String,Command> _commandMap = new HashMap<String,Command>(); 
@@ -55,9 +60,11 @@ public class RobotContainer {
     SmartDashboard.putString("Path to Test", "Test Path");
     setupNamedCommands();
     configureBindings();
+
     _drive.setDefaultCommand((new RunCommand(() -> {
       double velocityX = -m_driverController.getLeftY() * Constants.SwerveChassis.kMaxVelocity;
       double velocityY = -m_driverController.getLeftX() * Constants.SwerveChassis.kMaxVelocity;
+
       double rot = m_driverController.getRightX();
 
       // if(_3AxisJoystick.isConnected()) {

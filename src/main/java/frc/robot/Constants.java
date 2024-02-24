@@ -41,7 +41,7 @@ public static int kGamePieceSensorPort = 0;
 }
 public static class SwerveChassis {
 
-    public static final double kADrive = 0;
+    public static final double kADrive = 0.1;
     public static final double kPDrive = 0.11;
     public static final double kIDrive = 0.5;
     public static final double kDDrive = 0.0001;
@@ -53,6 +53,7 @@ public static class SwerveChassis {
     private static final double WHEEL_BASE = 22; 
     // max speed in meters per second. 
     public static double kWheelRadius = Units.inchesToMeters(2.0);  
+
     public static double kMaxVelocity = 2.0; 
     public static double kMaxRotationsPerSec = kMaxVelocity/(2*Math.PI*kWheelRadius);
     public static double degreesPerRotation = 30.0;
