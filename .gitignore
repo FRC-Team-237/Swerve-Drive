@@ -175,3 +175,5 @@ networktables.json
 .gitignore
 simgui.json
 simgui-ds.json
+
+sysid.json
