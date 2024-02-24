@@ -11,9 +11,11 @@ import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.CANSparkBase;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.REVPhysicsSim;
+import com.revrobotics.RelativeEncoder;
 import com.revrobotics.CANSparkLowLevel;
 import com.revrobotics.SparkPIDController;
 import com.revrobotics.CANSparkBase.ControlType;
+import com.revrobotics.CANSparkBase.FaultID;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.SparkAbsoluteEncoder.Type;
@@ -33,6 +35,7 @@ public class SwerveModule extends SubsystemBase {
   private TalonFX _driveMotor;
   private CANSparkMax _angleMotor;
   private AbsoluteEncoder _absAngleEncoder;
+  private RelativeEncoder _integratedNeoEncoder; 
   private ModPosition _podPos;
   private SparkPIDController _anglePID;
   private SwerveModuleState _targetState;
@@ -92,16 +95,32 @@ public class SwerveModule extends SubsystemBase {
   private void configureNeo(int id, boolean outputInverted) {
     _angleMotor = new CANSparkMax(id, MotorType.kBrushless);
     _angleMotor.restoreFactoryDefaults();
+    if (_angleMotor.getStickyFault(FaultID.kSensorFault) || _angleMotor.getStickyFault(FaultID.kSensorFault))
+    {
+      System.out.println("Sensor fault Detected: falling back to NEO integratedEncoder.");
+
+    }
+    else {
+      _absAngleEncoder = _angleMotor.getAbsoluteEncoder(Type.kDutyCycle);
+      _absAngleEncoder.setPositionConversionFactor(360);
+    }
     _angleMotor.clearFaults();
     // minimize can bus traffic for angle motors. 
     _angleMotor.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus1, 500);
     _angleMotor.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus2, 20);
     _angleMotor.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus3, 500);
 
-    _absAngleEncoder = _angleMotor.getAbsoluteEncoder(Type.kDutyCycle);
-    _absAngleEncoder.setPositionConversionFactor(360);
     _anglePID = _angleMotor.getPIDController();
-    _anglePID.setFeedbackDevice(_absAngleEncoder);
+
+    _integratedNeoEncoder = _angleMotor.getEncoder(); 
+    _integratedNeoEncoder.setPositionConversionFactor(Constants.SwerveChassis.kAngleConversionFactor); 
+    _integratedNeoEncoder.setPosition(0.0);
+    if (_absAngleEncoder != null){
+      _anglePID.setFeedbackDevice(_absAngleEncoder);
+    }
+    else {
+      _anglePID.setFeedbackDevice(_integratedNeoEncoder); 
+    }
     _anglePID.setP(0.025);
     _anglePID.setI(0);
     _anglePID.setD(0.0);
@@ -173,7 +192,12 @@ public class SwerveModule extends SubsystemBase {
 
   public SwerveModuleState getState() {
     double velocity = _driveMotor.getVelocity().getValue();
-    Rotation2d angle = Rotation2d.fromDegrees(_absAngleEncoder.getPosition());
+    Rotation2d angle; 
+    if (_absAngleEncoder != null){
+      angle = Rotation2d.fromDegrees(_absAngleEncoder.getPosition());
+    } else {
+      angle = Rotation2d.fromDegrees(_integratedNeoEncoder.getPosition()); 
+    }
     return new SwerveModuleState(velocity, angle);
   }
 
@@ -217,7 +241,9 @@ public class SwerveModule extends SubsystemBase {
         SmartDashboard.putNumber(_podPos.name() + "/Current Module State/Angle", _currentState.angle.getDegrees());
         SmartDashboard.putNumber(_podPos.name() + "/Current Module State/Speed(m per S)", _currentState.speedMetersPerSecond);
         SmartDashboard.putNumber(_podPos.name() + "/Angle Motor Output", _angleMotor.get());
-        SmartDashboard.putNumber(_podPos.name() + "/Absolute Angle Position", _absAngleEncoder.getPosition());
+        if (_absAngleEncoder != null){
+          SmartDashboard.putNumber(_podPos.name() + "/Absolute Angle Position", _absAngleEncoder.getPosition());
+        }
 
         break;
       case PRINT:
@@ -241,7 +267,18 @@ public class SwerveModule extends SubsystemBase {
     // This method will be called once per scheduler run
     
     var talonSignal = _driveMotor.getVelocity();
-    _currentState.angle = Rotation2d.fromDegrees(_absAngleEncoder.getPosition());
+    if (_angleMotor.getStickyFault(FaultID.kSensorFault) || _angleMotor.getFault(FaultID.kSensorFault) && _absAngleEncoder != null)
+    {
+      //System.out.println("Sensor fault Detected: falling back to NEO integratedEncoder.");
+      _absAngleEncoder = null; 
+      _anglePID.setFeedbackDevice(_integratedNeoEncoder); 
+    }
+    if (_absAngleEncoder != null){
+      _currentState.angle = Rotation2d.fromDegrees(_absAngleEncoder.getPosition());
+    }
+    else {
+      _currentState.angle = Rotation2d.fromDegrees(_integratedNeoEncoder.getPosition()); 
+    }
     double wheelRPS = talonSignal.getValue() / Constants.SwerveChassis.kDriveGearRatio;
     _currentState.speedMetersPerSecond = (wheelRPS) * 2 * Math.PI * Constants.SwerveChassis.kWheelRadius;
     log();

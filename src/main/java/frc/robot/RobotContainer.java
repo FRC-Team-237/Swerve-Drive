@@ -72,8 +72,8 @@ public class RobotContainer {
       
       rot *= 2.0 * Math.PI / 12.0;
 
-      velocityX = Math.abs(velocityX) > 0.1 ? velocityX : 0;
-      velocityY = Math.abs(velocityY) > 0.1 ? velocityY : 0;
+      velocityX = Math.abs(velocityX) > 0.12 ? velocityX : 0;
+      velocityY = Math.abs(velocityY) > 0.12 ? velocityY : 0;
 
       // SmartDashboard.putNumber("Rotation speed", rot);
 
@@ -125,26 +125,29 @@ public class RobotContainer {
     //   .whileTrue(new TestFollowCommand());
 
     m_driverController.rightTrigger(0.1)
-      .onTrue(new InstantCommand(_shooter::shoot))
-      .onFalse(new InstantCommand(_shooter::stopShoot));
+      .onTrue(_commandMap.get("ShootCommand"))
+      .onFalse(new InstantCommand(() -> {
+        _shooter.stopShoot();
+        _shooter.stopFeed();
+        _intake.stopIntakeMotor();
+       },_shooter,_intake));
     
     m_driverController.rightBumper()
-      .onTrue(new InstantCommand(_shooter::spit))
-      .onFalse(new InstantCommand(_shooter::stopShoot));
-    
-    m_driverController.leftTrigger(0.1)
       .onTrue(new InstantCommand(_shooter::intake))
       .onFalse(new InstantCommand(_shooter::stopIntake));
     
-    m_driverController.a()
-      .onTrue(new InstantCommand(() -> {
-        _shooter.feed();
-        _intake.setIntakeMotor(-1.0);
-      }))
-      .onFalse(new InstantCommand(() -> {
+    m_driverController.leftTrigger(0.1)
+      .onTrue(new InstantCommand(_shooter::spit)
+      .andThen(new InstantCommand(_shooter::feed)
+      .andThen(_intake.getActionCommand(Action.FIRE)))
+      )
+      .onFalse(new InstantCommand(()->{
         _shooter.stopFeed();
-        _intake.setIntakeMotor(0);
-      }));
+        _shooter.stopShoot();
+        _intake.stopIntakeMotor();
+      },_shooter,_intake));
+      
+    
     
     // m_driverController.povDown()
     //   .onTrue(new InstantCommand(() -> _intake.movePositionMotor(0.2)))
@@ -154,12 +157,13 @@ public class RobotContainer {
       .onTrue(new InstantCommand(() -> _intake.movePositionMotor(-0.2)))
       .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
 
-    m_driverController.povDown()
+    m_driverController.a()
       .onTrue(
         _commandMap.get("PickUpCommand")
-      )
-      .onFalse(_intake.getActionCommand(Action.LOAD).andThen(() -> _shooter.stopFeed(),_shooter));
-    
+      ); 
+      
+    m_driverController.b()
+    .onTrue(_intake.getActionCommand(Action.LOAD).andThen(() -> _shooter.stopFeed(),_shooter));
     m_driverController.y()
       .onTrue(new InstantCommand(_hanger::extend))
       .onFalse(new InstantCommand(_hanger::stop));
@@ -168,15 +172,7 @@ public class RobotContainer {
     .onTrue(new InstantCommand(_hanger::retract))
     .onFalse(new InstantCommand(_hanger::stop));
       
-     m_driverController.povRight()
-       .onTrue(
-        _commandMap.get("ShootCommand")
-       )
-       .onFalse(new InstantCommand(() -> {
-        _shooter.stopShoot();
-        _shooter.stopFeed();
-        _intake.stopIntakeMotor();
-       },_shooter,_intake));
+     
 
   }
 
