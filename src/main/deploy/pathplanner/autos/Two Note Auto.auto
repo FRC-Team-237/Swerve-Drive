@@ -14,19 +14,37 @@
         {
           "type": "named",
           "data": {
-            "name": null
+            "name": "TargetCommand"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": null
+            "name": "ShootCommand"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "IntakeCommand"
           }
         },
         {
           "type": "path",
           "data": {
             "pathName": "Pick Up First Note"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "TargetCommand"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "ShootCommand"
           }
         }
       ]

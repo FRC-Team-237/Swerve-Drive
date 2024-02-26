@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.pathplanner.lib.auto.NamedCommands;
+import com.pathplanner.lib.commands.PathPlannerAuto;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -43,11 +44,11 @@ public class RobotContainer {
   // Replace with CommandPS4Controller or CommandJoystick if needed
   private final CommandXboxController m_driverController =
       new CommandXboxController(OperatorConstants.kXboxControllerPort);
-  private final Joystick _logitechJoystick = new Joystick(OperatorConstants.kLogitechControllerPort);
-  private final JoystickButton _button = new JoystickButton(_logitechJoystick, 1);
+  private final Joystick _keyboard = new Joystick(OperatorConstants.kLogitechControllerPort);
+  private final JoystickButton _resetRobotButton = new JoystickButton(_keyboard, 1);
   private final Joystick _3AxisJoystick = new Joystick(1);
 
-  private final JoystickButton _resetPose = new JoystickButton(_logitechJoystick, 2); 
+  private final JoystickButton _testPath = new JoystickButton(_keyboard, 2); 
 
   public final IntakeSubsystem _intake = new IntakeSubsystem();
   private final HangerSubsystem _hanger = new HangerSubsystem();
@@ -62,26 +63,21 @@ public class RobotContainer {
     configureBindings();
 
     _drive.setDefaultCommand((new RunCommand(() -> {
-      double velocityX = -m_driverController.getLeftY() * Constants.SwerveChassis.kMaxVelocity;
-      double velocityY = -m_driverController.getLeftX() * Constants.SwerveChassis.kMaxVelocity;
+      
+      
+      double velocityX = (Math.abs(m_driverController.getLeftY()) > 0.1 ? -m_driverController.getLeftY() : 0) * Constants.SwerveChassis.kMaxVelocity;
+      double velocityY = (Math.abs(m_driverController.getLeftX()) > 0.1 ? -m_driverController.getLeftX() : 0) * Constants.SwerveChassis.kMaxVelocity;
 
-      double rot = m_driverController.getRightX();
-
+      double rot = -m_driverController.getRightX();
+      rot = Math.abs(rot) > 0.2 ? rot : 0;
+      rot *= Constants.SwerveChassis.kMaxRotationalVelocity; 
       // if(_3AxisJoystick.isConnected()) {
       //   velocityX = -_3AxisJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
       //   velocityY = _3AxisJoystick.getY() * Constants.SwerveChassis.kMaxVelocity;
       //   rot = _3AxisJoystick.getZ();
       // }
 
-      rot = Math.abs(rot) > 0.2 ? rot : 0;
-      rot /= 4.0;
-      rot *= Math.abs(rot);
       
-      rot *= 2.0 * Math.PI / 12.0;
-
-      velocityX = Math.abs(velocityX) > 0.12 ? velocityX : 0;
-      velocityY = Math.abs(velocityY) > 0.12 ? velocityY : 0;
-
       // SmartDashboard.putNumber("Rotation speed", rot);
 
       _drive.drive(
@@ -117,17 +113,16 @@ public class RobotContainer {
     //     System.out.println("Toggled field centric");
     //   }));
 
-    // m_driverController.povDown()
-    //   .onTrue(new InstantCommand(() -> {
-    //     _drive.resetOdometry(new Pose2d(1.90, 5.32, Rotation2d.fromDegrees(0)));
-    //     String pathName = SmartDashboard.getString("Path to Test", "Test Path"); 
-    //     PathUtilities.makePath(pathName, _drive).schedule();
-    //   }))
-    //   .onFalse(new InstantCommand(_drive::stopMotors, _drive));
-      // .onFalse(new InstantCommand(() -> {
-      //   _drive.stopMotors();
-      // }));
-
+    _testPath
+      .onTrue(new InstantCommand(() -> {
+        _drive.setDriveBrakeMode(true);
+        _drive.resetOdometry(new Pose2d(1.50, 5.54, Rotation2d.fromDegrees(180)));
+        _drive.resetPoseEstimator(new Pose2d(1.50, 5.54, Rotation2d.fromDegrees(180))); 
+      },_drive).andThen(new PathPlannerAuto("Two Note Auto"))
+      )
+      .onFalse(new InstantCommand(_drive::stopMotors, _drive).andThen(() -> _drive.setDriveBrakeMode(false)));
+    _resetRobotButton
+    .onTrue(new InstantCommand(_drive::setToStartPos,_drive)); 
     // m_driverController.povUp()
     //   .whileTrue(new TestFollowCommand());
 

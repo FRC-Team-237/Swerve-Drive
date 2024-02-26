@@ -7,6 +7,7 @@ package frc.robot.subsystems;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.CANSparkBase;
@@ -56,6 +57,14 @@ public class SwerveModule extends SubsystemBase {
     FRONT_RIGHT,
     BACK_LEFT,
     BACK_RIGHT
+  }
+  public enum Motor {
+    ANGLE,
+    DRIVE 
+  }
+  public enum BrakeMode {
+    BRAKE,
+    COAST
   }
 
   SimpleMotorFeedforward _ff = new SimpleMotorFeedforward(
@@ -241,15 +250,30 @@ public class SwerveModule extends SubsystemBase {
       false);
     vv.withVelocity(desiredState.speedMetersPerSecond / (2 * Math.PI * Constants.SwerveChassis.kWheelRadius)
         * Constants.SwerveChassis.kDriveGearRatio);
-    if (Math.abs(vv.Velocity) > 0.1 )
+    //if (Math.abs(vv.Velocity) > 0.05 )
       _driveMotor.setControl(vv);
-    else 
-      _driveMotor.stopMotor();
+    //else 
+    //  _driveMotor.stopMotor();
     _anglePID.setReference(desiredState.angle.getDegrees(), CANSparkBase.ControlType.kPosition);
 
     //log();
   }
-
+  public void setBrakeMode(Motor motor, BrakeMode mode)
+  {
+    if (motor == Motor.ANGLE){
+      if (mode == BrakeMode.BRAKE) {
+        _angleMotor.setIdleMode(IdleMode.kBrake); 
+      } else {
+        _angleMotor.setIdleMode(IdleMode.kCoast); 
+      }
+    } else {
+      if (mode == BrakeMode.BRAKE) {
+        _driveMotor.setNeutralMode(NeutralModeValue.Brake); 
+      } else {
+        _driveMotor.setNeutralMode(NeutralModeValue.Coast);; 
+      }
+    }
+  }
   public void log() {
     var talonSignal = _driveMotor.getVelocity();
 

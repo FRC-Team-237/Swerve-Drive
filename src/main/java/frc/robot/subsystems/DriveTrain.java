@@ -19,13 +19,22 @@ import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructArrayPublisher;
 import edu.wpi.first.networktables.StructPublisher;
+import edu.wpi.first.util.struct.Struct;
 import edu.wpi.first.wpilibj.ADIS16470_IMU;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
+
+import edu.wpi.first.wpilibj.simulation.ADIS16470_IMUSim;
+
 import frc.robot.Constants;
 import frc.robot.Constants.SwerveChassis;
+import frc.robot.subsystems.SwerveModule.BrakeMode;
 import frc.robot.subsystems.SwerveModule.ModPosition;
+import frc.robot.subsystems.SwerveModule.Motor;
 
 public class DriveTrain extends SubsystemBase {
   /** Creates a new DriveTrain. */
@@ -34,11 +43,13 @@ public class DriveTrain extends SubsystemBase {
   private SwerveDrivePoseEstimator _swervePoseEstimator; 
   private Field2d _field = new Field2d(); 
   private ADIS16470_IMU _imu = new ADIS16470_IMU(); 
-  
-  private StructArrayPublisher<SwerveModuleState> _swerveStatesPub; 
+  private ADIS16470_IMUSim _imuSim = new ADIS16470_IMUSim(_imu); 
+  private StructArrayPublisher<SwerveModuleState> _swerveTargetStatesPub; 
+  private StructArrayPublisher<SwerveModuleState> _swerveStatesPub;
   private StructPublisher<Pose2d> _posePub; 
-  private StructPublisher<Pose2d> _estimatedPub; 
-  
+  private StructPublisher<Pose2d> _targetPub; 
+  private StructPublisher<ChassisSpeeds> _speedPub; 
+  private double _lastTime;
   public DriveTrain() {
     this.setName("Drive Train");
 
@@ -51,7 +62,7 @@ public class DriveTrain extends SubsystemBase {
 
     // set up Odometry and Pose
     _swerveDriveOdometry = new SwerveDriveOdometry(Constants.SwerveChassis.SWERVE_KINEMATICS,
-    new Rotation2d(_imu.getAngle(_imu.getYawAxis())),
+    new Rotation2d(_imu.getAngle(IMUAxis.kYaw )),
     getPositions()); 
     
     _swervePoseEstimator = new SwerveDrivePoseEstimator(Constants.SwerveChassis.SWERVE_KINEMATICS, Rotation2d.fromDegrees(0), getEstimatedPosition(), new Pose2d(1, 3, Rotation2d.fromDegrees(0))); 
@@ -75,10 +86,12 @@ public class DriveTrain extends SubsystemBase {
     this); 
     PathPlannerLogging.setLogActivePathCallback((poses) -> _field.getObject("path").setPoses(poses));
     // Set up Publishers 
-    _swerveStatesPub = NetworkTableInstance.getDefault().getStructArrayTopic("TargetStates", SwerveModuleState.struct).publish(); 
+    _swerveTargetStatesPub = NetworkTableInstance.getDefault().getStructArrayTopic("TargetStates", SwerveModuleState.struct).publish(); 
+    _swerveStatesPub = NetworkTableInstance.getDefault().getStructArrayTopic("States", SwerveModuleState.struct).publish();
     _posePub = NetworkTableInstance.getDefault().getStructTopic("Pose", Pose2d.struct).publish(); 
-    _estimatedPub = NetworkTableInstance.getDefault().getStructTopic("Target Pose", Pose2d.struct).publish(); 
-
+    _targetPub = NetworkTableInstance.getDefault().getStructTopic("Target Pose", Pose2d.struct).publish(); 
+    _speedPub = NetworkTableInstance.getDefault().getStructTopic("Chassis Speeds", ChassisSpeeds.struct).publish();
+    _lastTime = Timer.getFPGATimestamp();  
   }
   private SwerveModulePosition[] getEstimatedPosition() {
     SwerveModulePosition[] positions = new SwerveModulePosition[4];
@@ -97,7 +110,7 @@ public class DriveTrain extends SubsystemBase {
 
   public void resetOdometry(Pose2d pose)
   {
-    _swerveDriveOdometry.resetPosition(new Rotation2d(_imu.getAngle(_imu.getYawAxis())), getPositions(), pose);
+    _swerveDriveOdometry.resetPosition(new Rotation2d(_imu.getAngle(IMUAxis.kYaw)), getPositions(), pose);
   }
   public Pose2d getPose2d()
   {
@@ -113,12 +126,15 @@ public class DriveTrain extends SubsystemBase {
     return Constants.SwerveChassis.SWERVE_KINEMATICS.toChassisSpeeds(swerveModuleStates); 
   }
   public void resetPoseEstimator(Pose2d pose) {
-    _swervePoseEstimator.resetPosition(new Rotation2d(_imu.getAngle(_imu.getYawAxis())), getPositions(), pose);
+    _swervePoseEstimator.resetPosition(new Rotation2d(_imu.getAngle(IMUAxis.kYaw)), getPositions(), pose);
   }
   public Pose2d getPoseEstimate() {
     return _swervePoseEstimator.getEstimatedPosition();
   }
-
+  public void setToStartPos(){
+    _swervePoseEstimator.resetPosition(Rotation2d.fromDegrees(0), getPositions(), new Pose2d(1.50, 5.54, Rotation2d.fromDegrees(0)));
+    _swerveDriveOdometry.resetPosition(Rotation2d.fromDegrees(0), getPositions(), new Pose2d(1.50, 5.54, Rotation2d.fromDegrees(0)));
+  }
   public void driveRobotRelative(ChassisSpeeds speed){
     SwerveModuleState[] swerveModuleStates;
     swerveModuleStates = SwerveChassis.SWERVE_KINEMATICS.toSwerveModuleStates(
@@ -139,7 +155,7 @@ public class DriveTrain extends SubsystemBase {
               xVelocity_m_per_s,
               yVelocity_m_per_s,
               omega_rad_per_s,
-              Rotation2d.fromDegrees(_imu.getAngle(_imu.getYawAxis()))));
+              Rotation2d.fromDegrees(_imu.getAngle(IMUAxis.kYaw))));
     } else { // robot-centric swerve; does not use IMU
       swerveModuleStates = SwerveChassis.SWERVE_KINEMATICS.toSwerveModuleStates(
           new ChassisSpeeds(
@@ -170,15 +186,27 @@ public class DriveTrain extends SubsystemBase {
       mod.simulationInit();
     }
   }
-
+  @Override
+  public void simulationPeriodic(){
+    // update the Gyro based on chassis speeds. 
+    ChassisSpeeds speeds = Constants.SwerveChassis.SWERVE_KINEMATICS.toChassisSpeeds(getTargetStates()); 
+    
+    _imuSim.setGyroAngleZ(_imu.getAngle(IMUAxis.kYaw)+Math.toDegrees(speeds.omegaRadiansPerSecond)*(Timer.getFPGATimestamp() - _lastTime));
+    _lastTime = Timer.getFPGATimestamp(); 
+  }
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
-    _swervePoseEstimator.update(Rotation2d.fromDegrees(_imu.getAngle(_imu.getYawAxis())), getEstimatedPosition()); 
-    _swerveDriveOdometry.update(Rotation2d.fromDegrees(_imu.getAngle(_imu.getYawAxis())), getPositions()); 
-    _swerveStatesPub.set(getStates());
+    
+    _swervePoseEstimator.update(Rotation2d.fromDegrees(_imu.getAngle(IMUAxis.kYaw)), getEstimatedPosition()); 
+    _swerveDriveOdometry.update(Rotation2d.fromDegrees(_imu.getAngle(IMUAxis.kYaw)), getPositions()); 
+    _swerveTargetStatesPub.set(getTargetStates());
+    _swerveStatesPub.set(getStates()); 
     _posePub.set(getPose2d());
-    _estimatedPub.set(_swervePoseEstimator.getEstimatedPosition()); 
+    _targetPub.set(_swervePoseEstimator.getEstimatedPosition()); 
+    _speedPub.set(Constants.SwerveChassis.SWERVE_KINEMATICS.toChassisSpeeds(getTargetStates())); 
+    SmartDashboard.putNumber("Gyro Angle", _imu.getAngle(IMUAxis.kYaw)); 
+    SmartDashboard.putNumber("Average Sim Frame (s)", (Timer.getFPGATimestamp() - _lastTime)); 
   }
    /**
    * This method updates swerve odometry. Note that we do not update it in a
@@ -203,7 +231,7 @@ public class DriveTrain extends SubsystemBase {
    */
   public void updateTrajectoryOdometry() {
     
-      _swerveDriveOdometry.update(new Rotation2d(_imu.getAngle(_imu.getYawAxis())), getPositions());
+      _swerveDriveOdometry.update(new Rotation2d(_imu.getAngle(IMUAxis.kYaw)), getPositions());
   }
   
   public void testSwervePods()
@@ -219,6 +247,12 @@ public class DriveTrain extends SubsystemBase {
       mod.testAnglePosition(angle);
     }
   }
+  public void setDriveBrakeMode(boolean brake){
+    for (SwerveModule mod: _swerveModules)
+    {
+      mod.setBrakeMode(Motor.DRIVE, (brake) ? BrakeMode.BRAKE : BrakeMode.COAST);;
+    }
+  }
   public void stopMotors(){
     for (SwerveModule mod: _swerveModules)
     {
@@ -228,11 +262,21 @@ public class DriveTrain extends SubsystemBase {
   public boolean flipPath(){
     return false; 
   }
-  public SwerveModuleState[] getStates(){
+  public SwerveModuleState[] getTargetStates(){
     SwerveModuleState[] swerveModuleStates = new SwerveModuleState[_swerveModules.length];
     for (int i = 0; i< swerveModuleStates.length; i++) {
       swerveModuleStates[i] = _swerveModules[i].getTargetState(); 
     }
     return swerveModuleStates; 
   }
+  public SwerveModuleState[] getStates(){
+    SwerveModuleState[] swerveModuleStates = new SwerveModuleState[_swerveModules.length];
+    for (int i = 0; i< swerveModuleStates.length; i++) {
+      swerveModuleStates[i] = _swerveModules[i].getState(); 
+    }
+    return swerveModuleStates; 
+  }
 }
+
+
+
