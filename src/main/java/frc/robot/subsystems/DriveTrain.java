@@ -7,6 +7,7 @@ package frc.robot.subsystems;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.util.PathPlannerLogging;
 
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -50,6 +51,10 @@ public class DriveTrain extends SubsystemBase {
   private StructPublisher<Pose2d> _targetPub; 
   private StructPublisher<ChassisSpeeds> _speedPub; 
   private double _lastTime;
+
+  private boolean isAutoRotating = false;
+  private PIDController _autoRotatePID = new PIDController(0.1, 0.0, 0.0);
+
   public DriveTrain() {
     this.setName("Drive Train");
 
@@ -58,7 +63,10 @@ public class DriveTrain extends SubsystemBase {
       new SwerveModule(ModPosition.FRONT_RIGHT),
       new SwerveModule(ModPosition.BACK_LEFT),
       new SwerveModule(ModPosition.BACK_RIGHT)
-    }; 
+    };
+
+    _autoRotatePID.setTolerance(5.0);
+    _autoRotatePID.enableContinuousInput(-180, 180);
 
     // set up Odometry and Pose
     _swerveDriveOdometry = new SwerveDriveOdometry(Constants.SwerveChassis.SWERVE_KINEMATICS,
@@ -108,6 +116,19 @@ public class DriveTrain extends SubsystemBase {
     return positions; 
   }
 
+  public double getAngle() {
+    return _imu.getAngle(IMUAxis.kYaw);
+  }
+
+  public void setTargetAngle(double angle) {
+    isAutoRotating = true;
+    _autoRotatePID.setSetpoint(angle);
+  }
+
+  public void stopAutoRotating() {
+    isAutoRotating = false;
+  }
+
   public void resetOdometry(Pose2d pose)
   {
     _swerveDriveOdometry.resetPosition(new Rotation2d(_imu.getAngle(IMUAxis.kYaw)), getPositions(), pose);
@@ -151,11 +172,13 @@ public class DriveTrain extends SubsystemBase {
     SwerveModuleState[] swerveModuleStates;
     //System.out.println("***X: "+xVelocity_m_per_s+" ***Y: "+yVelocity_m_per_s+" ***o: "+omega_rad_per_s);
     if (fieldcentric) { // field-centric swerve
+      double angleDelta = _autoRotatePID.calculate(this.getAngle());
+
       swerveModuleStates = SwerveChassis.SWERVE_KINEMATICS.toSwerveModuleStates(
           ChassisSpeeds.fromFieldRelativeSpeeds(
               xVelocity_m_per_s,
               yVelocity_m_per_s,
-              omega_rad_per_s,
+              isAutoRotating ? angleDelta : omega_rad_per_s,
               Rotation2d.fromDegrees(_imu.getAngle(IMUAxis.kYaw))));
     } else { // robot-centric swerve; does not use IMU
       swerveModuleStates = SwerveChassis.SWERVE_KINEMATICS.toSwerveModuleStates(

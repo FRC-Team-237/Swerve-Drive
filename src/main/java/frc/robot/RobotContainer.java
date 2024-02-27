@@ -157,9 +157,15 @@ public class RobotContainer {
     //   .onTrue(new InstantCommand(() -> _intake.movePositionMotor(0.2)))
     //   .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
     
+    // m_driverController.povUp()
+    //   .onTrue(new InstantCommand(() -> _intake.movePositionMotor(-0.2)))
+    //   .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
+
     m_driverController.povUp()
-      .onTrue(new InstantCommand(() -> _intake.movePositionMotor(-0.2)))
-      .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
+      .onTrue(new InstantCommand(() -> {
+        _drive.setTargetAngle(90);
+      }))
+      .onFalse(new InstantCommand(_drive::stopAutoRotating));
 
     m_driverController.a()
       .onTrue(
