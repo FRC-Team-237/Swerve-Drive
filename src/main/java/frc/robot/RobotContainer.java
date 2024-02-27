@@ -40,19 +40,20 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
  */
 public class RobotContainer {
   // The robot's subsystems and commands are defined here...
-  public final DriveTrain _drive = new DriveTrain(); 
+  public final DriveTrain _drive = new DriveTrain();
   // Replace with CommandPS4Controller or CommandJoystick if needed
   private final CommandXboxController m_driverController =
       new CommandXboxController(OperatorConstants.kXboxControllerPort);
   private final Joystick _keyboard = new Joystick(OperatorConstants.kLogitechControllerPort);
   private final JoystickButton _resetRobotButton = new JoystickButton(_keyboard, 1);
   private final Joystick _3AxisJoystick = new Joystick(1);
+  private final Joystick _buttonPanel = new Joystick(OperatorConstants.kButtonPanelPort);
 
-  private final JoystickButton _testPath = new JoystickButton(_keyboard, 2); 
+  private final JoystickButton _testPath = new JoystickButton(_keyboard, 2);
 
   public final IntakeSubsystem _intake = new IntakeSubsystem();
   private final HangerSubsystem _hanger = new HangerSubsystem();
-  private final Map<String,Command> _commandMap = new HashMap<String,Command>(); 
+  private final Map<String,Command> _commandMap = new HashMap<String,Command>();
   private boolean fieldCentric;
   private final ShooterSubsystem _shooter = new ShooterSubsystem();
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
@@ -165,7 +166,8 @@ public class RobotContainer {
       ); 
       
     m_driverController.b()
-    .onTrue(_intake.getActionCommand(Action.LOAD).andThen(() -> _shooter.stopFeed(),_shooter));
+      .onTrue(_intake.getActionCommand(Action.LOAD)
+        .andThen(() -> _shooter.stopFeed(),_shooter));
     m_driverController.y()
       .onTrue(new InstantCommand(_hanger::extend))
       .onFalse(new InstantCommand(_hanger::stop));
@@ -173,9 +175,52 @@ public class RobotContainer {
     m_driverController.x()
     .onTrue(new InstantCommand(_hanger::retract))
     .onFalse(new InstantCommand(_hanger::stop));
-      
-     
+  
+    // button panel
 
+    new JoystickButton(_buttonPanel, 1)
+      .onTrue(new InstantCommand(_hanger::retract))
+      .onFalse(new InstantCommand(_hanger::stop));
+    
+    new JoystickButton(_buttonPanel, 2)
+      .onTrue(new InstantCommand(_hanger::extend))
+      .onFalse(new InstantCommand(_hanger::stop));
+    
+    new JoystickButton(_buttonPanel, 3)
+      .onTrue(_commandMap.get("ShootCommand"))
+      .onFalse(new InstantCommand(() -> {
+        _shooter.stopShoot();
+        _shooter.stopFeed();
+        _intake.stopIntakeMotor();
+       },_shooter,_intake));
+    
+    new JoystickButton(_buttonPanel, 4)
+      .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(-1)))
+      .onFalse(new InstantCommand(_intake::stopIntakeMotor));
+    
+    new JoystickButton(_buttonPanel, 6)
+      .onTrue(new InstantCommand(_shooter::intake))
+      .onFalse(new InstantCommand(_shooter::stopIntake));
+    
+    new JoystickButton(_buttonPanel, 7)
+      .onTrue(new InstantCommand(_shooter::feed))
+      .onFalse(new InstantCommand(_shooter::stopFeed));
+    
+    new JoystickButton(_buttonPanel, 8)
+      .onTrue(new InstantCommand(_shooter::shoot))
+      .onFalse(new InstantCommand(_shooter::stopShoot));
+    
+    new JoystickButton(_buttonPanel, 9)
+      .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(1)))
+      .onFalse(new InstantCommand(_intake::stopIntakeMotor));
+    
+    new JoystickButton(_buttonPanel, 10)
+      .onTrue(new InstantCommand(() -> _intake.movePositionMotor(0.2)))
+      .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
+    
+    new JoystickButton(_buttonPanel, 11)
+      .onTrue(new InstantCommand(() -> _intake.movePositionMotor(-0.2)))
+      .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
   }
 
   public Command getTestPathCommand() {
@@ -221,11 +266,11 @@ public class RobotContainer {
         .andThen(_intake.getActionCommand(Action.LOAD)); 
     pickUpCommand.setName("PickUpCommand");
     _commandMap.put(pickUpCommand.getName(),pickUpCommand);
+
     // Command to Eject notes 
     Command ejectCommand = _intake.getActionCommand(Action.EJECT); 
     ejectCommand.setName("EjectCommand");
-    _commandMap.put(ejectCommand.getName(), ejectCommand); 
-    
+    _commandMap.put(ejectCommand.getName(), ejectCommand);
 
     // Register all Named commands for use with path planner. 
     _commandMap.forEach((key,value)->{
