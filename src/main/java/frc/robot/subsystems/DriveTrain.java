@@ -107,7 +107,9 @@ public class DriveTrain extends SubsystemBase {
     }
     return positions; 
   }
-
+  public void setGyroAngle(double angle){
+    _imu.setGyroAngle(IMUAxis.kYaw, angle);
+  }
   public void resetOdometry(Pose2d pose)
   {
     _swerveDriveOdometry.resetPosition(new Rotation2d(_imu.getAngle(IMUAxis.kYaw)), getPositions(), pose);

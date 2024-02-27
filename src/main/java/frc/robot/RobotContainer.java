@@ -116,6 +116,7 @@ public class RobotContainer {
 
     _testPath
       .onTrue(new InstantCommand(() -> {
+        
         _drive.setDriveBrakeMode(true);
         _drive.resetOdometry(new Pose2d(1.50, 5.54, Rotation2d.fromDegrees(180)));
         _drive.resetPoseEstimator(new Pose2d(1.50, 5.54, Rotation2d.fromDegrees(180))); 
@@ -123,7 +124,10 @@ public class RobotContainer {
       )
       .onFalse(new InstantCommand(_drive::stopMotors, _drive).andThen(() -> _drive.setDriveBrakeMode(false)));
     _resetRobotButton
-    .onTrue(new InstantCommand(_drive::setToStartPos,_drive)); 
+    .onTrue(new InstantCommand(() -> {
+      _drive.setGyroAngle(180);
+      _drive.setToStartPos();
+    },_drive)); 
     // m_driverController.povUp()
     //   .whileTrue(new TestFollowCommand());
 
