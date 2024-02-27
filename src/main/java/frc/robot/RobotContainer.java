@@ -53,7 +53,7 @@ public class RobotContainer {
   public final IntakeSubsystem _intake = new IntakeSubsystem();
   private final HangerSubsystem _hanger = new HangerSubsystem();
   private final Map<String,Command> _commandMap = new HashMap<String,Command>(); 
-  private boolean fieldCentric;
+  private boolean fieldCentric = true;
   private final ShooterSubsystem _shooter = new ShooterSubsystem();
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
@@ -149,7 +149,8 @@ public class RobotContainer {
         _intake.stopIntakeMotor();
       },_shooter,_intake));
       
-    
+    m_driverController.start()
+    .onTrue(new InstantCommand(() -> fieldCentric = !fieldCentric)); 
     
     // m_driverController.povDown()
     //   .onTrue(new InstantCommand(() -> _intake.movePositionMotor(0.2)))

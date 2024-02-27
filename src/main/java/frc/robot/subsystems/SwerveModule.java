@@ -231,7 +231,7 @@ public class SwerveModule extends SubsystemBase {
     return _targetState; 
   }
   public void setDesiredState(SwerveModuleState desiredState) {
-    // desiredState = SwerveModuleState.optimize(desiredState, getState().angle);
+     desiredState = SwerveModuleState.optimize(desiredState, getState().angle);
     _targetState = desiredState;
     
     if (RobotBase.isSimulation())
@@ -250,10 +250,11 @@ public class SwerveModule extends SubsystemBase {
       false);
     vv.withVelocity(desiredState.speedMetersPerSecond / (2 * Math.PI * Constants.SwerveChassis.kWheelRadius)
         * Constants.SwerveChassis.kDriveGearRatio);
-    //if (Math.abs(vv.Velocity) > 0.05 )
+    //if (Math.abs(vv.Velocity) == 0.0 )
       _driveMotor.setControl(vv);
     //else 
     //  _driveMotor.stopMotor();
+    
     _anglePID.setReference(desiredState.angle.getDegrees(), CANSparkBase.ControlType.kPosition);
 
     //log();
