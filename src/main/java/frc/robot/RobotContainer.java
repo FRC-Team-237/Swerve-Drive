@@ -10,6 +10,7 @@ import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.HangerSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
+import frc.robot.subsystems.DriveTrain.RobotSide;
 import frc.robot.subsystems.IntakeSubsystem.Action;
 import frc.robot.subsystems.IntakeSubsystem.Action;
 
@@ -46,6 +47,7 @@ public class RobotContainer {
       new CommandXboxController(OperatorConstants.kXboxControllerPort);
   private final Joystick _keyboard = new Joystick(OperatorConstants.kLogitechControllerPort);
   private final JoystickButton _resetRobotButton = new JoystickButton(_keyboard, 1);
+  private final JoystickButton _toggleFront = new JoystickButton(_keyboard, 3); 
   private final Joystick _3AxisJoystick = new Joystick(1);
   private final Joystick _buttonPanel = new Joystick(OperatorConstants.kButtonPanelPort);
 
@@ -70,7 +72,7 @@ public class RobotContainer {
       double velocityY = (Math.abs(m_driverController.getLeftX()) > 0.1 ? -m_driverController.getLeftX() : 0) * Constants.SwerveChassis.kMaxVelocity;
 
       double rot = -m_driverController.getRightX();
-      rot = Math.abs(rot) > 0.2 ? rot : 0;
+      rot = Math.abs(rot) > 0.15 ? rot : 0;
       rot *= Constants.SwerveChassis.kMaxRotationalVelocity; 
       // if(_3AxisJoystick.isConnected()) {
       //   velocityX = -_3AxisJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
@@ -115,19 +117,23 @@ public class RobotContainer {
     //   }));
 
     _testPath
-      .onTrue(new InstantCommand(() -> {
-        
-        _drive.setDriveBrakeMode(true);
-        _drive.resetOdometry(new Pose2d(1.50, 5.54, Rotation2d.fromDegrees(180)));
-        _drive.resetPoseEstimator(new Pose2d(1.50, 5.54, Rotation2d.fromDegrees(180))); 
-      },_drive).andThen(new PathPlannerAuto("Two Note Auto"))
-      )
+      .onTrue(new PathPlannerAuto("Two Note Auto"))
       .onFalse(new InstantCommand(_drive::stopMotors, _drive).andThen(() -> _drive.setDriveBrakeMode(false)));
     _resetRobotButton
     .onTrue(new InstantCommand(() -> {
-      _drive.setGyroAngle(180);
+      
       _drive.setToStartPos();
     },_drive)); 
+
+    _toggleFront
+    .onTrue(new InstantCommand(() -> {
+      if (_drive.getFrontOfRobot() == RobotSide.kIntake){
+        _drive.setFrontOfRobot(RobotSide.kShooter);
+      }
+      else {
+        _drive.setFrontOfRobot(RobotSide.kIntake);
+      }
+    })); 
     // m_driverController.povUp()
     //   .whileTrue(new TestFollowCommand());
 
@@ -255,10 +261,9 @@ public class RobotContainer {
     // shoot command 
     Command shootCommand = new InstantCommand(()->{
           _shooter.shoot();
-        },_shooter)
-        // TODO: Investigate this The AI seems to think this will wait for 5 seconds regardless of if the shooter is up to speed. 
-        .andThen(new WaitCommand(5))
+        },_shooter) 
         .until(_shooter::atSpeed)
+        .withTimeout(2)
         .andThen(()->{
           _shooter.feed();
           _intake.setIntakeMotor(-0.75);
@@ -276,7 +281,17 @@ public class RobotContainer {
     Command ejectCommand = _intake.getActionCommand(Action.EJECT); 
     ejectCommand.setName("EjectCommand");
     _commandMap.put(ejectCommand.getName(), ejectCommand);
+    
+    // Command to Set Front to Intake 
+    Command setFrontIntake = new InstantCommand(() -> _drive.setFrontOfRobot(RobotSide.kIntake), _drive); 
+    setFrontIntake.setName("SetFrontIntake");
+    _commandMap.put(setFrontIntake.getName(),setFrontIntake); 
+    // Command to Set Front to Shooter 
+    Command setFrontShooter = new InstantCommand(() -> _drive.setFrontOfRobot(RobotSide.kShooter), _drive); 
+    setFrontShooter.setName("SetFrontShooter");
+    _commandMap.put(setFrontShooter.getName(), setFrontShooter); 
 
+    
     // Register all Named commands for use with path planner. 
     _commandMap.forEach((key,value)->{
       NamedCommands.registerCommand(key, value);

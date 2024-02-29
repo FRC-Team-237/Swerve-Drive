@@ -50,6 +50,11 @@ public class DriveTrain extends SubsystemBase {
   private StructPublisher<Pose2d> _targetPub; 
   private StructPublisher<ChassisSpeeds> _speedPub; 
   private double _lastTime;
+  public enum RobotSide {
+    kShooter, 
+    kIntake
+  }
+  private RobotSide _front; 
   public DriveTrain() {
     this.setName("Drive Train");
 
@@ -92,6 +97,7 @@ public class DriveTrain extends SubsystemBase {
     _targetPub = NetworkTableInstance.getDefault().getStructTopic("Target Pose", Pose2d.struct).publish(); 
     _speedPub = NetworkTableInstance.getDefault().getStructTopic("Chassis Speeds", ChassisSpeeds.struct).publish();
     _lastTime = Timer.getFPGATimestamp();  
+    _front = RobotSide.kIntake; 
   }
   private SwerveModulePosition[] getEstimatedPosition() {
     SwerveModulePosition[] positions = new SwerveModulePosition[4];
@@ -106,9 +112,6 @@ public class DriveTrain extends SubsystemBase {
       positions[i] = _swerveModules[i].getPosition(); 
     }
     return positions; 
-  }
-  public void setGyroAngle(double angle){
-    _imu.setGyroAngle(IMUAxis.kYaw, angle);
   }
   public void resetOdometry(Pose2d pose)
   {
@@ -134,8 +137,8 @@ public class DriveTrain extends SubsystemBase {
     return _swervePoseEstimator.getEstimatedPosition();
   }
   public void setToStartPos(){
-    _swervePoseEstimator.resetPosition(Rotation2d.fromDegrees(0), getPositions(), new Pose2d(1.50, 5.54, Rotation2d.fromDegrees(0)));
-    _swerveDriveOdometry.resetPosition(Rotation2d.fromDegrees(0), getPositions(), new Pose2d(1.50, 5.54, Rotation2d.fromDegrees(0)));
+    _swervePoseEstimator.resetPosition(Rotation2d.fromDegrees(_imu.getAngle(IMUAxis.kYaw)), getPositions(), new Pose2d(1.50, 5.54, Rotation2d.fromDegrees(0)));
+    _swerveDriveOdometry.resetPosition(Rotation2d.fromDegrees(_imu.getAngle(IMUAxis.kYaw)), getPositions(), new Pose2d(1.50, 5.54, Rotation2d.fromDegrees(0)));
   }
 
   public void driveRobotRelative(ChassisSpeeds speed){
@@ -148,7 +151,21 @@ public class DriveTrain extends SubsystemBase {
       _swerveModules[i].setDesiredState(swerveModuleStates[i]);
     }
   }
-
+  public void setFrontOfRobot(RobotSide front)
+  {
+    // if We arent changing anything, just leave 
+    if (_front == front) return; 
+    Pose2d pose = new Pose2d(getPose2d().getX(), getPose2d().getY(), Rotation2d.fromDegrees(180)); 
+    Pose2d targetPose2d = new Pose2d(getPoseEstimate().getX(), getPoseEstimate().getY(), getPoseEstimate().getRotation().minus(Rotation2d.fromDegrees(180))); 
+    resetOdometry(pose);
+    resetPoseEstimator(targetPose2d);
+    // set new state. 
+    _front = front; 
+  }
+  public RobotSide getFrontOfRobot()
+  {
+    return _front; 
+  }
   public void drive(double xVelocity_m_per_s, double yVelocity_m_per_s, double omega_rad_per_s, boolean fieldcentric){
     SwerveModuleState[] swerveModuleStates;
     //System.out.println("***X: "+xVelocity_m_per_s+" ***Y: "+yVelocity_m_per_s+" ***o: "+omega_rad_per_s);
