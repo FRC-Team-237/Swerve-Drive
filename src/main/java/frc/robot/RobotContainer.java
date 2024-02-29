@@ -66,11 +66,18 @@ public class RobotContainer {
     _drive.setDefaultCommand((new RunCommand(() -> {
       
       
-      double velocityX = (Math.abs(m_driverController.getLeftY()) > 0.1 ? -m_driverController.getLeftY() : 0) * Constants.SwerveChassis.kMaxVelocity;
-      double velocityY = (Math.abs(m_driverController.getLeftX()) > 0.1 ? -m_driverController.getLeftX() : 0) * Constants.SwerveChassis.kMaxVelocity;
+      double velocityX = (Math.abs(m_driverController.getLeftY()) > 0.1 ? -m_driverController.getLeftY() : 0);
+      double velocityY = (Math.abs(m_driverController.getLeftX()) > 0.1 ? -m_driverController.getLeftX() : 0);
 
-      double rot = -m_driverController.getRightX();
+      velocityX *= Math.abs(velocityX);
+      velocityY *= Math.abs(velocityY);
+
+      //  * Constants.SwerveChassis.kMaxVelocity
+      //  * Constants.SwerveChassis.kMaxVelocity
+
+      double rot = m_driverController.getRightX();
       rot = Math.abs(rot) > 0.2 ? rot : 0;
+      rot *= Math.abs(rot) * Math.abs(rot) * Math.abs(rot);
       rot *= Constants.SwerveChassis.kMaxRotationalVelocity; 
       // if(_3AxisJoystick.isConnected()) {
       //   velocityX = -_3AxisJoystick.getX() * Constants.SwerveChassis.kMaxVelocity;
@@ -82,8 +89,8 @@ public class RobotContainer {
       // SmartDashboard.putNumber("Rotation speed", rot);
 
       _drive.drive(
-        velocityX * Math.abs(velocityX),
-        velocityY * Math.abs(velocityY),
+        velocityX * Constants.SwerveChassis.kMaxVelocity,
+        velocityY * Constants.SwerveChassis.kMaxVelocity,
         rot,
         fieldCentric
       );
@@ -165,10 +172,14 @@ public class RobotContainer {
     //   .onTrue(new InstantCommand(() -> _intake.movePositionMotor(-0.2)))
     //   .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
 
+    // m_driverController.povUp()
+    //   .onTrue(new InstantCommand(() -> {
+    //     _drive.setTargetAngle(90);
+    //   }))
+    //   .onFalse(new InstantCommand(_drive::stopAutoRotating));
+
     m_driverController.povUp()
-      .onTrue(new InstantCommand(() -> {
-        _drive.setTargetAngle(90);
-      }))
+      .onTrue(new InstantCommand(() -> _drive.setTargetAngle(45)))
       .onFalse(new InstantCommand(_drive::stopAutoRotating));
 
     m_driverController.a()
@@ -189,21 +200,33 @@ public class RobotContainer {
   
     // button panel
 
+    // hanger retract
     new JoystickButton(_buttonPanel, 1)
       .onTrue(new InstantCommand(_hanger::retract))
       .onFalse(new InstantCommand(_hanger::stop));
     
+    // hanger extend
     new JoystickButton(_buttonPanel, 2)
       .onTrue(new InstantCommand(_hanger::extend))
       .onFalse(new InstantCommand(_hanger::stop));
     
+    // amp shoot
     new JoystickButton(_buttonPanel, 3)
-      .onTrue(_commandMap.get("ShootCommand"))
-      .onFalse(new InstantCommand(() -> {
-        _shooter.stopShoot();
+      .onTrue(new InstantCommand(_shooter::spit)
+      .andThen(new InstantCommand(_shooter::feed)
+      .andThen(_intake.getActionCommand(Action.FIRE)))
+      )
+      .onFalse(new InstantCommand(()->{
         _shooter.stopFeed();
+        _shooter.stopShoot();
         _intake.stopIntakeMotor();
-       },_shooter,_intake));
+      },_shooter,_intake));
+      // .onTrue(_commandMap.get("ShootCommand"))
+      // .onFalse(new InstantCommand(() -> {
+      //   _shooter.stopShoot();
+      //   _shooter.stopFeed();
+      //   _intake.stopIntakeMotor();
+      //  },_shooter,_intake));
     
     new JoystickButton(_buttonPanel, 4)
       .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(-1)))
@@ -214,8 +237,12 @@ public class RobotContainer {
       .onFalse(new InstantCommand(_shooter::stopIntake));
     
     new JoystickButton(_buttonPanel, 7)
-      .onTrue(new InstantCommand(_shooter::feed))
-      .onFalse(new InstantCommand(_shooter::stopFeed));
+      .onTrue(new InstantCommand(_shooter::feed)
+        .andThen(new InstantCommand(() -> _intake.setIntakeMotor(-1)))
+      )
+      .onFalse(new InstantCommand(_shooter::stopFeed)
+        .andThen(new InstantCommand(_intake::stopIntakeMotor)
+      ));
     
     new JoystickButton(_buttonPanel, 8)
       .onTrue(new InstantCommand(_shooter::shoot))

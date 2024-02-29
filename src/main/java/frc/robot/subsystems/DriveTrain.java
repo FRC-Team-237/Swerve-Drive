@@ -24,6 +24,9 @@ import edu.wpi.first.util.struct.Struct;
 import edu.wpi.first.wpilibj.ADIS16470_IMU;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
@@ -53,7 +56,8 @@ public class DriveTrain extends SubsystemBase {
   private double _lastTime;
 
   private boolean isAutoRotating = false;
-  private PIDController _autoRotatePID = new PIDController(0.1, 0.0, 0.0);
+
+  private PIDController _autoRotatePID;
 
   public DriveTrain() {
     this.setName("Drive Train");
@@ -65,7 +69,21 @@ public class DriveTrain extends SubsystemBase {
       new SwerveModule(ModPosition.BACK_RIGHT)
     };
 
-    _autoRotatePID.setTolerance(5.0);
+    SmartDashboard.putNumber("Drive/AutoRotate/P", 0.002);
+    SmartDashboard.putNumber("Drive/AutoRotate/I", 0.0);
+    SmartDashboard.putNumber("Drive/AutoRotate/D", 0.0001);
+    _autoRotatePID = new PIDController(0.0001, 0.0, 0.00001);
+
+    SmartDashboard.putData("Drive/AutoRotate/Update", new InstantCommand(() -> {
+      double P = SmartDashboard.getNumber("Drive/AutoRotate/P", 0.0);
+      double I = SmartDashboard.getNumber("Drive/AutoRotate/I", 0.0);
+      double D = SmartDashboard.getNumber("Drive/AutoRotate/D", 0.0);
+
+      System.out.println("Set PID to " + P + ", " + I + ", " + D);
+
+      _autoRotatePID.setPID(P, I, D);
+    }));
+
     _autoRotatePID.enableContinuousInput(-180, 180);
 
     // set up Odometry and Pose
@@ -125,6 +143,20 @@ public class DriveTrain extends SubsystemBase {
     _autoRotatePID.setSetpoint(angle);
   }
 
+  // public Command autoRotate(double angle) {
+  //   return new RunCommand(() -> {
+  //     isAutoRotating = true;
+  //     _autoRotatePID.setSetpoint(angle);
+  //   }).until(() -> _autoRotatePID.atSetpoint())
+  //   .andThen(() -> {
+  //     stopAutoRotating();
+  //   });
+  // }
+
+  public boolean isInAutoRotatePosition() {
+    return _autoRotatePID.atSetpoint();
+  }
+
   public void stopAutoRotating() {
     isAutoRotating = false;
   }
@@ -172,6 +204,7 @@ public class DriveTrain extends SubsystemBase {
 
   public void drive(double xVelocity_m_per_s, double yVelocity_m_per_s, double omega_rad_per_s, boolean fieldcentric){
     SwerveModuleState[] swerveModuleStates;
+
     //System.out.println("***X: "+xVelocity_m_per_s+" ***Y: "+yVelocity_m_per_s+" ***o: "+omega_rad_per_s);
     if (fieldcentric) { // field-centric swerve
       double angleDelta = _autoRotatePID.calculate(this.getAngle());
