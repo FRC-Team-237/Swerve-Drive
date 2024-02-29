@@ -231,13 +231,11 @@ public class SwerveModule extends SubsystemBase {
     return _targetState; 
   }
   public void setDesiredState(SwerveModuleState desiredState) {
-    //  desiredState = SwerveModuleState.optimize(desiredState, getState().angle);
-    _targetState = desiredState;
     
-    if (RobotBase.isSimulation())
-    {
-
+    if (!RobotBase.isSimulation()){
+     //  desiredState = SwerveModuleState.optimize(desiredState, getState().angle);  
     }
+    _targetState = desiredState;
     
     VelocityVoltage vv = new VelocityVoltage(
       0.0,
