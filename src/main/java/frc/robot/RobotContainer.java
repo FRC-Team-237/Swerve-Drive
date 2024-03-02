@@ -136,24 +136,24 @@ public class RobotContainer {
       .onTrue(
         new InstantCommand(_drive::setToStartPos)
         // .andThen(new PathPlannerAuto("Two Note Auto"))
-        //.andThen(_commandMap.get("ShootCommand"))
-        .andThen(new WaitCommand(2))
+        .andThen(getCommand(CommandType.kShoot))
+        .andThen(new WaitCommand(1))
         .andThen(
           new ParallelCommandGroup(
             new RunCommand(() -> {
             _drive.drive(1.0, 0, 0, fieldCentric);
             },
             _drive).withTimeout(1),
-            _commandMap.get("PickUpCommand")
+            getCommand(CommandType.kPickup)
           )
         )
         .andThen(() -> _drive.stopMotors())
-        // //.alongWith(_commandMap.get("PickUpCommand"))
-        // .andThen(new RunCommand(() -> {
-        //   _drive.drive(-1.0, 0, 0, fieldCentric);
-        // }, _drive)).withTimeout(1)
-        // .andThen(()-> _drive.stopMotors())
-        // .andThen(_commandMap.get("ShootCommand"))
+        .andThen(new RunCommand(() -> {
+          _drive.drive(-1.0, 0, 0, fieldCentric);
+        }, _drive)).withTimeout(1)
+        .andThen(()-> _drive.stopMotors())
+        .andThen(getCommand(CommandType.kTarget))
+        .andThen(getCommand(CommandType.kShoot))
          )
       .onFalse(new InstantCommand(_drive::stopMotors, _drive).andThen(() -> _drive.setDriveBrakeMode(false)));
     _resetRobotButton
