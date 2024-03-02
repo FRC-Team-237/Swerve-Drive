@@ -5,6 +5,7 @@
 package frc.robot;
 
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.Utilities.CommandFactory;
 import frc.robot.Utilities.PathUtilities;
 import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.HangerSubsystem;
@@ -26,6 +27,7 @@ import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
@@ -58,6 +60,13 @@ public class RobotContainer {
   private final Map<String,Command> _commandMap = new HashMap<String,Command>(); 
   private boolean fieldCentric = true;
   private final ShooterSubsystem _shooter = new ShooterSubsystem();
+  public enum CommandType {
+    kShoot,
+    kPickup,
+    kLoad,
+    kTarget
+  }
+  
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     // Configure the trigger bindings
@@ -124,12 +133,33 @@ public class RobotContainer {
     //   }));
 
     _testPath
-      .onTrue(new PathPlannerAuto("Two Note Auto"))
+      .onTrue(
+        new InstantCommand(_drive::setToStartPos)
+        // .andThen(new PathPlannerAuto("Two Note Auto"))
+        //.andThen(_commandMap.get("ShootCommand"))
+        .andThen(new WaitCommand(2))
+        .andThen(
+          new ParallelCommandGroup(
+            new RunCommand(() -> {
+            _drive.drive(1.0, 0, 0, fieldCentric);
+            },
+            _drive).withTimeout(1),
+            _commandMap.get("PickUpCommand")
+          )
+        )
+        .andThen(() -> _drive.stopMotors())
+        // //.alongWith(_commandMap.get("PickUpCommand"))
+        // .andThen(new RunCommand(() -> {
+        //   _drive.drive(-1.0, 0, 0, fieldCentric);
+        // }, _drive)).withTimeout(1)
+        // .andThen(()-> _drive.stopMotors())
+        // .andThen(_commandMap.get("ShootCommand"))
+         )
       .onFalse(new InstantCommand(_drive::stopMotors, _drive).andThen(() -> _drive.setDriveBrakeMode(false)));
     _resetRobotButton
     .onTrue(new InstantCommand(() -> {
       
-      _drive.setToStartPos();
+      
     },_drive)); 
 
     _toggleFront
@@ -145,7 +175,15 @@ public class RobotContainer {
     //   .whileTrue(new TestFollowCommand());
 
     m_driverController.rightTrigger(0.1)
-      .onTrue(_commandMap.get("ShootCommand"))
+      .onTrue(new RunCommand(()->{
+          _shooter.shoot();
+        },_shooter) 
+        .until(_shooter::atSpeed)
+        .withTimeout(2)
+        .andThen(()->{
+          _shooter.feed();
+          _intake.setIntakeMotor(-0.75);
+        },_shooter,_intake))
       .onFalse(new InstantCommand(() -> {
         _shooter.stopShoot();
         _shooter.stopFeed();
@@ -191,7 +229,8 @@ public class RobotContainer {
 
     m_driverController.a()
       .onTrue(
-        _commandMap.get("PickUpCommand")
+        _intake.getActionCommand(Action.INTAKE)
+        .andThen(_intake.getActionCommand(Action.LOAD))
       ); 
       
     m_driverController.b()
@@ -293,7 +332,7 @@ public class RobotContainer {
     _commandMap.put(targetCommand.getName(),targetCommand); 
     
     // shoot command 
-    Command shootCommand = new InstantCommand(()->{
+    Command shootCommand = new RunCommand(()->{
           _shooter.shoot();
         },_shooter) 
         .until(_shooter::atSpeed)
@@ -331,7 +370,21 @@ public class RobotContainer {
       NamedCommands.registerCommand(key, value);
     });
   }
+  public Command getCommand(CommandType type){
+    switch (type)
+    {
+      case kShoot:
+        return CommandFactory.makeShootCommand(_shooter, _intake); 
+      case kPickup:
+        return CommandFactory.makePickUpCommand(_intake); 
+      case kTarget:
+        //TODO: fill in with target command
+        return new InstantCommand(); 
+      default:
+      return new InstantCommand(); 
 
+    }
+  }
   /**
    * Use this to pass the autonomous command to the main {@link Robot} class.
    *

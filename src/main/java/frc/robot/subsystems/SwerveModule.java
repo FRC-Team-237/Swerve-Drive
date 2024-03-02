@@ -106,7 +106,8 @@ public class SwerveModule extends SubsystemBase {
     config.Voltage.PeakForwardVoltage = Constants.SwerveChassis.kPeakForwardFF;
     config.Voltage.PeakReverseVoltage = Constants.SwerveChassis.kPeakReverseFF;
     
-    
+    config.TorqueCurrent.PeakForwardTorqueCurrent = 80;
+    config.TorqueCurrent.PeakReverseTorqueCurrent = 80; 
     _driveMotor.getConfigurator().apply(config);
     _driveMotor.setInverted(outputInverted);
     if(RobotBase.isSimulation()){
@@ -158,6 +159,7 @@ public class SwerveModule extends SubsystemBase {
     _anglePID.setPositionPIDWrappingMaxInput(180.0);
     _anglePID.setSmartMotionAllowedClosedLoopError(10.0,0);
     _anglePID.setSmartMotionMinOutputVelocity(10, 0);
+    _angleMotor.setSmartCurrentLimit(80); 
     _angleMotor.setIdleMode(IdleMode.kBrake);
 
     _angleMotor.burnFlash();
@@ -233,7 +235,7 @@ public class SwerveModule extends SubsystemBase {
   public void setDesiredState(SwerveModuleState desiredState) {
     
     if (!RobotBase.isSimulation()){
-     //  desiredState = SwerveModuleState.optimize(desiredState, getState().angle);  
+      desiredState = SwerveModuleState.optimize(desiredState, getState().angle);  
     }
     _targetState = desiredState;
     
