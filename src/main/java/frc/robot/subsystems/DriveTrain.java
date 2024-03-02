@@ -56,7 +56,6 @@ public class DriveTrain extends SubsystemBase {
   private double _lastTime;
 
   private boolean isAutoRotating = false;
-
   private PIDController _autoRotatePID;
 
   public enum RobotSide {
@@ -77,12 +76,12 @@ public class DriveTrain extends SubsystemBase {
     SmartDashboard.putNumber("Drive/AutoRotate/P", 0.002);
     SmartDashboard.putNumber("Drive/AutoRotate/I", 0.0);
     SmartDashboard.putNumber("Drive/AutoRotate/D", 0.0001);
-    _autoRotatePID = new PIDController(0.0001, 0.0, 0.00001);
+    _autoRotatePID = new PIDController(0.002, 0.0, 0.0001);
 
     SmartDashboard.putData("Drive/AutoRotate/Update", new InstantCommand(() -> {
-      double P = SmartDashboard.getNumber("Drive/AutoRotate/P", 0.0);
+      double P = SmartDashboard.getNumber("Drive/AutoRotate/P", 0.002);
       double I = SmartDashboard.getNumber("Drive/AutoRotate/I", 0.0);
-      double D = SmartDashboard.getNumber("Drive/AutoRotate/D", 0.0);
+      double D = SmartDashboard.getNumber("Drive/AutoRotate/D", 0.0001);
 
       System.out.println("Set PID to " + P + ", " + I + ", " + D);
 
@@ -164,7 +163,7 @@ public class DriveTrain extends SubsystemBase {
     // return _autoRotatePID.atSetpoint();
     boolean inPos = Math.abs(getAngle() - _autoRotatePID.getSetpoint()) < 10;
     if(inPos) {
-      System.out.println("IN SETPOS: " + getAngle());
+      stopAutoRotating();
       return true;
     }
     return false;
@@ -206,7 +205,7 @@ public class DriveTrain extends SubsystemBase {
     swerveModuleStates = SwerveChassis.SWERVE_KINEMATICS.toSwerveModuleStates(
         speed
     ); 
-    SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, SwerveChassis.kMaxVelocity);
+    SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, SwerveChassis.kSuperEpicTurboMaxVelocity);
     for (int i = 0; i<_swerveModules.length; i++) {
       _swerveModules[i].setDesiredState(swerveModuleStates[i]);
     }
@@ -256,7 +255,7 @@ public class DriveTrain extends SubsystemBase {
     // of a vector we have. That will preserve the direction of the robot even it is
     // concurrently combioned with the
     // holonomic rotation.
-    SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, SwerveChassis.kMaxVelocity);
+    SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, SwerveChassis.kSuperEpicTurboMaxVelocity);
     int i = 0; 
     for (SwerveModule mod : _swerveModules) {
       mod.setDesiredState(swerveModuleStates[i++]);
