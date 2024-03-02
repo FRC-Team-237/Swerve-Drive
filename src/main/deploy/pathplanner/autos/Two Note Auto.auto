@@ -24,21 +24,22 @@
           }
         },
         {
-          "type": "named",
+          "type": "parallel",
           "data": {
-            "name": "IntakeCommand"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Pick Up Second Note"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "SetFrontShooter"
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Pick Up Second Note"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "PickUpCommand"
+                }
+              }
+            ]
           }
         },
         {
