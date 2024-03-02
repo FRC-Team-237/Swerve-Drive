@@ -99,9 +99,15 @@ public class RobotContainer {
       
       // SmartDashboard.putNumber("Rotation speed", rot);
 
+      double maxVelocity = m_driverController.leftBumper().getAsBoolean()
+        ? Constants.SwerveChassis.kSuperEpicTurboMaxVelocity
+        : Constants.SwerveChassis.kMaxVelocity;
+
+      SmartDashboard.putNumber("Drive/Max Velocity", maxVelocity);
+
       _drive.drive(
-        velocityX * Constants.SwerveChassis.kMaxVelocity,
-        velocityY * Constants.SwerveChassis.kMaxVelocity,
+        velocityX * maxVelocity,
+        velocityY * maxVelocity,
         rot,
         fieldCentric
       );
@@ -222,9 +228,24 @@ public class RobotContainer {
     //   }))
     //   .onFalse(new InstantCommand(_drive::stopAutoRotating));
 
+    // m_driverController.povUp()
+    //   .onTrue(new InstantCommand(() -> _drive.setTargetAngle(45))
+    //     .until(_drive::isInAutoRotatePosition))
+    //   .onFalse(new InstantCommand(_drive::stopAutoRotating));
+
+    m_driverController.povDown()
+      .onTrue(new InstantCommand(() -> _drive.setTargetAngle(0))
+        .unless(_drive::isInAutoRotatePosition))
+      .onFalse(new InstantCommand(_drive::stopAutoRotating));
+
     m_driverController.povUp()
-      .onTrue(new InstantCommand(() -> _drive.setTargetAngle(45))
-        .until(_drive::isInAutoRotatePosition))
+      .onTrue(new InstantCommand(() -> _drive.setTargetAngle(180+60))
+        .unless(_drive::isInAutoRotatePosition))
+      .onFalse(new InstantCommand(_drive::stopAutoRotating));
+
+    m_driverController.povRight()
+      .onTrue(new InstantCommand(() -> _drive.setTargetAngle(90))
+        .unless(_drive::isInAutoRotatePosition))
       .onFalse(new InstantCommand(_drive::stopAutoRotating));
 
     m_driverController.a()
