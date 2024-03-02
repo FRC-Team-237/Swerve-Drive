@@ -90,6 +90,7 @@ public class DriveTrain extends SubsystemBase {
     }));
 
     _autoRotatePID.enableContinuousInput(-180, 180);
+    _autoRotatePID.setTolerance(10.0);
 
     // set up Odometry and Pose
     _swerveDriveOdometry = new SwerveDriveOdometry(Constants.SwerveChassis.SWERVE_KINEMATICS,
@@ -141,7 +142,7 @@ public class DriveTrain extends SubsystemBase {
   }
 
   public double getAngle() {
-    return _imu.getAngle(IMUAxis.kYaw);
+    return ((_imu.getAngle(IMUAxis.kYaw) - 180)) % 360 - 180;
   }
 
   public void setTargetAngle(double angle) {
@@ -160,7 +161,13 @@ public class DriveTrain extends SubsystemBase {
   // }
 
   public boolean isInAutoRotatePosition() {
-    return _autoRotatePID.atSetpoint();
+    // return _autoRotatePID.atSetpoint();
+    boolean inPos = Math.abs(getAngle() - _autoRotatePID.getSetpoint()) < 10;
+    if(inPos) {
+      System.out.println("IN SETPOS: " + getAngle());
+      return true;
+    }
+    return false;
   }
 
   public void stopAutoRotating() {
