@@ -269,19 +269,22 @@ public class RobotContainer {
     // .onFalse(new InstantCommand(_drive::stopAutoRotating));
 
     m_driverController.povDown()
-        .onTrue(new InstantCommand(() -> _drive.setTargetAngle(0))
-            .unless(_drive::isInAutoRotatePosition))
-        .onFalse(new InstantCommand(_drive::stopAutoRotating));
+      .onTrue(new InstantCommand(() -> _drive.setTargetAngle(0))
+        // .unless(_drive::isInAutoRotatePosition)
+      )
+      .onFalse(new InstantCommand(_drive::stopAutoRotating));
 
     m_driverController.povUp()
-        .onTrue(new InstantCommand(() -> _drive.setTargetAngle(180 + 60))
-            .unless(_drive::isInAutoRotatePosition))
-        .onFalse(new InstantCommand(_drive::stopAutoRotating));
+      .onTrue(new InstantCommand(() -> _drive.setTargetAngle(180 + 60))
+        // .unless(_drive::isInAutoRotatePosition)
+      )
+      .onFalse(new InstantCommand(_drive::stopAutoRotating));
 
     m_driverController.povRight()
-        .onTrue(new InstantCommand(() -> _drive.setTargetAngle(90))
-            .unless(_drive::isInAutoRotatePosition))
-        .onFalse(new InstantCommand(_drive::stopAutoRotating));
+      .onTrue(new InstantCommand(() -> _drive.setTargetAngle(90))
+        // .unless(_drive::isInAutoRotatePosition)
+      )
+      .onFalse(new InstantCommand(_drive::stopAutoRotating));
 
     m_driverController.a()
         .onTrue(
