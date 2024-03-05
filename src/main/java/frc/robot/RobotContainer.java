@@ -148,58 +148,11 @@ public class RobotContainer {
     // }));
 
     _testPath
-      .onTrue(
+      .whileTrue(
         // .andThen(new PathPlannerAuto("Two Note Auto"))
-        new RunCommand(_shooter::shoot, _shooter)
-          .until(_shooter::atSpeed)
-        .andThen(_shooter::feed)
-        .andThen(new WaitCommand(0.15))
-        .andThen(new InstantCommand(() -> {
-          _intake.setPosition(Constants.IntakeConstants.kDeployedPos);
-        }, _intake))
-        .andThen(new WaitCommand(0.25))
-        .andThen(_shooter::stopShoot)
-        .andThen(_shooter::stopFeed)
-        .andThen(new WaitCommand(0.15))
-        .andThen(new ParallelCommandGroup(
-          // new InstantCommand(() -> _intake.setIntakeMotor(1.0), _intake),
-
-          new RunCommand(() -> _intake.setIntakeMotor(1.0), _intake)
-            .until(_intake::hasGamePiece),
-
-          new RunCommand(() -> _drive.drive(
-            1,
-            0,
-            0,
-            true),
-            _drive)
-          .withTimeout(1.5)
-        )).withTimeout(5)
-        .andThen(_drive::stopMotors, _drive)
-        .andThen(_intake::stopIntakeMotor)
-        .andThen(() -> _intake.setPosition(Constants.IntakeConstants.kRetractedPos))
-        .andThen(new ParallelCommandGroup(
-          new RunCommand(() -> _drive.drive(
-            -1.5,
-            0,
-            0,
-            true),
-            _drive)
-          .withTimeout(0.4)
-        ))
-        .andThen(_drive::stopMotors)
-        .andThen(new RunCommand(_shooter::shoot, _shooter)
-          .until(() -> _shooter.atSpeed() && _intake.inFirePosition()))
-        .andThen(_shooter::feed)
-        .andThen(() -> _intake.setIntakeMotor(-1))
-        .andThen(new WaitCommand(0.4))
-        .andThen(_shooter::stopFeed)
-        .andThen(_shooter::stopShoot)
-      )
+        getCenterAutoCommand()
+      ); 
           // .andThen(_shooter::stopShoot)
-      .onFalse(
-        new InstantCommand(_drive::stopMotors, _drive)
-          .andThen(() -> _drive.setDriveBrakeMode(false)));
     _resetRobotButton
         .onTrue(new InstantCommand(() -> {
 
@@ -457,5 +410,58 @@ public class RobotContainer {
   public Command getAutonomousCommand() {
     // An example command will be run in autonomous
     return new InstantCommand();
+  }
+
+  public Command getCenterAutoCommand(){
+    return new RunCommand(_shooter::shoot, _shooter)
+          .until(_shooter::atSpeed)
+        .andThen(_shooter::feed)
+        .andThen(new WaitCommand(0.15))
+        .andThen(new InstantCommand(() -> {
+          _intake.setPosition(Constants.IntakeConstants.kDeployedPos);
+        }, _intake))
+        .andThen(new WaitCommand(0.25))
+        .andThen(_shooter::stopShoot)
+        .andThen(_shooter::stopFeed)
+        .andThen(new WaitCommand(0.15))
+        .andThen(new ParallelCommandGroup(
+          // new InstantCommand(() -> _intake.setIntakeMotor(1.0), _intake),
+
+          new RunCommand(() -> _intake.setIntakeMotor(1.0), _intake)
+            .until(_intake::hasGamePiece),
+
+          new RunCommand(() -> _drive.drive(
+            1,
+            0,
+            0,
+            true),
+            _drive)
+          .withTimeout(1.5)
+        )).withTimeout(5)
+        .andThen(_drive::stopMotors, _drive)
+        .andThen(_intake::stopIntakeMotor)
+        .andThen(() -> _intake.setPosition(Constants.IntakeConstants.kRetractedPos))
+        .andThen(new ParallelCommandGroup(
+          new RunCommand(() -> _drive.drive(
+            -1.5,
+            0,
+            0,
+            true),
+            _drive)
+          .withTimeout(1.1)
+        ))
+        .andThen(_drive::stopMotors)
+        .andThen(new RunCommand(_shooter::shoot, _shooter)
+          .until(() -> _shooter.atSpeed() && _intake.inFirePosition()))
+        .andThen(_shooter::feed)
+        .andThen(() -> _intake.setIntakeMotor(-1))
+        .andThen(new WaitCommand(1))
+        .finallyDo(() -> {
+          _shooter.stopFeed();
+          _shooter.stopShoot();
+          _intake.stopIntakeMotor();
+          _drive.stopMotors();
+        });
+        
   }
 }
