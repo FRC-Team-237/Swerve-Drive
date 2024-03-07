@@ -55,7 +55,8 @@ public class DriveTrain extends SubsystemBase {
   private StructPublisher<ChassisSpeeds> _speedPub; 
   private double _lastTime;
 
-  private boolean isAutoRotating = false;
+  public boolean isAutoRotating = false;
+  public double targetAngle = 0;
   private PIDController _autoRotatePID;
 
   public enum RobotSide {
@@ -144,45 +145,39 @@ public class DriveTrain extends SubsystemBase {
     return ((_imu.getAngle(IMUAxis.kYaw) - 180)) % 360 - 180;
   }
 
-  public void setTargetAngle(double angle) {
-    isAutoRotating = true;
-    _autoRotatePID.setSetpoint(angle);
+  public double getRawAngle() {
+    return _imu.getAngle(IMUAxis.kYaw);
   }
 
-  // public Command autoRotate(double angle) {
-  //   return new RunCommand(() -> {
-  //     isAutoRotating = true;
-  //     _autoRotatePID.setSetpoint(angle);
-  //   }).until(() -> _autoRotatePID.atSetpoint())
-  //   .andThen(() -> {
-  //     stopAutoRotating();
-  //   });
-  // }
-
-  public boolean isInAutoRotatePosition() {
-    // return _autoRotatePID.atSetpoint();
-    boolean inPos = Math.abs(getAngle() - _autoRotatePID.getSetpoint()) < 10;
-    if(inPos) {
-      stopAutoRotating();
-      return true;
-    }
-    return false;
+  private double normalizeAngle(double angle) {
+    while(angle <= -180) angle += 360;
+    while(angle > 180) angle -= 360;
+    return angle;
   }
 
-  public void stopAutoRotating() {
-    isAutoRotating = false;
+  public double realDistance(double to) {
+    double from = normalizeAngle(getAngle());
+    to = normalizeAngle(to);
+
+    double diff = to - from;
+    if(diff <= -180) diff += 360;
+    else if(diff > 180) diff -= 360;
+
+    return diff;
   }
-  public void resetOdometry(Pose2d pose)
-  {
+
+  public boolean isNear(double angle) {
+    return Math.abs(getAngle() - angle) < 10;
+  }
+
+  public void resetOdometry(Pose2d pose) {
     _swerveDriveOdometry.resetPosition(new Rotation2d(_imu.getAngle(IMUAxis.kYaw)), getPositions(), pose);
   }
-  public Pose2d getPose2d()
-  {
+  public Pose2d getPose2d() {
     return _swerveDriveOdometry.getPoseMeters(); 
   }
 
-  public ChassisSpeeds getRobotRelativeSpeeds()
-  {
+  public ChassisSpeeds getRobotRelativeSpeeds() {
     SwerveModuleState[] swerveModuleStates = new SwerveModuleState[_swerveModules.length];
     for (int i = 0; i< swerveModuleStates.length; i++) {
       swerveModuleStates[i] = _swerveModules[i].getState(); 
@@ -214,8 +209,8 @@ public class DriveTrain extends SubsystemBase {
   {
     // if We arent changing anything, just leave 
     if (_front == front) return; 
-    Pose2d pose = new Pose2d(getPose2d().getX(), getPose2d().getY(), Rotation2d.fromDegrees(180)); 
-    Pose2d targetPose2d = new Pose2d(getPoseEstimate().getX(), getPoseEstimate().getY(), getPoseEstimate().getRotation().minus(Rotation2d.fromDegrees(180))); 
+    Pose2d pose = new Pose2d(getPose2d().getX(), getPose2d().getY(), Rotation2d.fromDegrees(0)); 
+    Pose2d targetPose2d = new Pose2d(getPoseEstimate().getX(), getPoseEstimate().getY(), getPoseEstimate().getRotation().minus(Rotation2d.fromDegrees(0))); 
     resetOdometry(pose);
     resetPoseEstimator(targetPose2d);
     // set new state. 
@@ -225,18 +220,49 @@ public class DriveTrain extends SubsystemBase {
   {
     return _front; 
   }
+
+  double easeToAngle(double distance, double maxSpeed) {
+    double a = 1.0 / Math.pow(2.0, Math.pow(0.015 * distance, 2.0));
+
+    if(maxSpeed - a * maxSpeed <= 0.025) {
+      return 0.0;
+    }
+
+    return maxSpeed - a * maxSpeed;
+  }
+
+  public void setIsAutoRotating(boolean shouldAutoRotate) {
+    this.isAutoRotating = shouldAutoRotate;
+  }
+
+  public double targetDelta = 0.0;
+
   public void drive(double xVelocity_m_per_s, double yVelocity_m_per_s, double omega_rad_per_s, boolean fieldcentric){
     SwerveModuleState[] swerveModuleStates;
 
     //System.out.println("***X: "+xVelocity_m_per_s+" ***Y: "+yVelocity_m_per_s+" ***o: "+omega_rad_per_s);
     if (fieldcentric) { // field-centric swerve
-      double angleDelta = _autoRotatePID.calculate(this.getAngle());
+      // double angleDelta = _autoRotatePID.calculate(this.getAngle());
+      // double angleDelta = realDistance(targetAngle);
+      // double easing = easeToAngle(angleDelta, 1);
+
+      // SmartDashboard.putNumber("Drive/Angle Delta", angleDelta);
+      // SmartDashboard.putNumber("Drive/Ease Value", easing);
+      SmartDashboard.putBoolean("Drive/AutoRotating", isAutoRotating);
+      if(!isAutoRotating) {
+        targetDelta = omega_rad_per_s;
+      }
+
+      double angleDelta = realDistance(targetAngle);
+      double easing = easeToAngle(angleDelta, 0.3);
+
+      SmartDashboard.putNumber("Drive/Target Delta", targetDelta);
 
       swerveModuleStates = SwerveChassis.SWERVE_KINEMATICS.toSwerveModuleStates(
           ChassisSpeeds.fromFieldRelativeSpeeds(
               xVelocity_m_per_s,
               yVelocity_m_per_s,
-              isAutoRotating ? angleDelta : omega_rad_per_s,
+              easing,
               Rotation2d.fromDegrees(_imu.getAngle(IMUAxis.kYaw))));
     } else { // robot-centric swerve; does not use IMU
       swerveModuleStates = SwerveChassis.SWERVE_KINEMATICS.toSwerveModuleStates(
@@ -245,6 +271,12 @@ public class DriveTrain extends SubsystemBase {
               yVelocity_m_per_s,
               omega_rad_per_s));
     }
+
+    SmartDashboard.putBoolean("Drive/Field Centric", fieldcentric);
+    SmartDashboard.putNumber("Drive/Angle", getAngle());
+    SmartDashboard.putNumber("Drive/Rotation", new Rotation2d(_imu.getAngle(IMUAxis.kYaw)).getDegrees());
+    SmartDashboard.putNumber("Drive/Angle Raw", _imu.getAngle(IMUAxis.kYaw));
+    SmartDashboard.putNumber("Drive/Test Angle Distance", realDistance(_autoRotatePID.getSetpoint()));
 
     // Because the resulting power is a vector sum of the robot direction and
     // rotation, it's possible that

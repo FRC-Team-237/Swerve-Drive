@@ -145,7 +145,7 @@ public class ShooterSubsystem extends SubsystemBase {
     feederMotor.set(-speed);
   }
   public boolean atSpeed(){
-    if (highMotorEncoder.getVelocity()>shooterRPM-100) {
+    if (highMotorEncoder.getVelocity()>shooterRPM-350) {
       return true;
     } else {
       return false;

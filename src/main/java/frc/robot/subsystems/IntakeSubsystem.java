@@ -142,10 +142,19 @@ public class IntakeSubsystem extends SubsystemBase {
       default: return new InstantCommand(); 
     }
   }
-  public boolean inFirePosition()
-  {
+
+  public double getPosition() {
+    return m_deployEncoder.getPosition();
+  }
+
+  public boolean inDeployedPosition() {
+    return m_deployEncoder.getPosition() > Constants.IntakeConstants.kDeployedPos - 1;
+  }
+
+  public boolean inFirePosition() {
     return Math.abs(m_deployEncoder.getPosition() - Constants.IntakeConstants.kRetractedPos) < 1 || m_reverseLimitSwitch.isPressed(); 
   }
+
   public boolean hasGamePiece(){
     return m_gamePieceSensor.get(); 
   }

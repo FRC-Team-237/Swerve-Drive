@@ -320,7 +320,7 @@ public class SwerveModule extends SubsystemBase {
     var talonSignal = _driveMotor.getVelocity();
     if (_angleMotor.getStickyFault(FaultID.kSensorFault) || _angleMotor.getFault(FaultID.kSensorFault) && _absAngleEncoder != null)
     {
-      //System.out.println("Sensor fault Detected: falling back to NEO integratedEncoder.");
+      System.out.println("Sensor fault Detected: falling back to NEO integratedEncoder.");
       _absAngleEncoder = null; 
       _anglePID.setFeedbackDevice(_integratedNeoEncoder); 
     }
