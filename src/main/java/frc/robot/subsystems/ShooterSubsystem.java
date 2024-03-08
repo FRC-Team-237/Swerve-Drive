@@ -83,7 +83,7 @@ public class ShooterSubsystem extends SubsystemBase {
     lowShooterFF = SmartDashboard.getNumber("Shooter/lowFF", 0.00018125);
     shooterRPM = SmartDashboard.getNumber("Shooter/RPM", Constants.Mechanism.kShooterMaxTargetRPM);
 
-    spitPower = SmartDashboard.getNumber("Shooter/SpitPower", 0.5);
+    spitPower = SmartDashboard.getNumber("Shooter/SpitPower", 0.4);
 
     lowMotorPID.setP(lowShooterP);
     lowMotorPID.setI(lowShooterI);
