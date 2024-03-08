@@ -7,6 +7,9 @@ package frc.robot;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.Utilities.CommandFactory;
 import frc.robot.Utilities.PathUtilities;
+import frc.robot.commands.IntakeCommand;
+import frc.robot.commands.MoveIntakeCommand;
+import frc.robot.commands.RotateToAngle;
 import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.HangerSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
@@ -150,11 +153,58 @@ public class RobotContainer {
     // }));
 
     _testPath
-      .whileTrue(
+      .onTrue(
         // .andThen(new PathPlannerAuto("Two Note Auto"))
-        getCenterAutoCommand()
-      ); 
+        new RunCommand(_shooter::shoot, _shooter)
+          .until(_shooter::atSpeed)
+        .andThen(_shooter::feed)
+        .andThen(new WaitCommand(0.15))
+        .andThen(new InstantCommand(() -> {
+          _intake.setPosition(Constants.IntakeConstants.kDeployedPos);
+        }, _intake))
+        .andThen(new WaitCommand(0.25))
+        .andThen(_shooter::stopShoot)
+        .andThen(_shooter::stopFeed)
+        .andThen(new WaitCommand(0.15))
+        .andThen(new ParallelCommandGroup(
+          // new InstantCommand(() -> _intake.setIntakeMotor(1.0), _intake),
+
+          new RunCommand(() -> _intake.setIntakeMotor(1.0), _intake)
+            .until(_intake::hasGamePiece),
+
+          new RunCommand(() -> _drive.drive(
+            1,
+            0,
+            0,
+            true),
+            _drive)
+          .withTimeout(1.5)
+        )).withTimeout(5)
+        .andThen(_drive::stopMotors, _drive)
+        .andThen(_intake::stopIntakeMotor)
+        .andThen(() -> _intake.setPosition(Constants.IntakeConstants.kRetractedPos))
+        .andThen(new ParallelCommandGroup(
+          new RunCommand(() -> _drive.drive(
+            -1.5,
+            0,
+            0,
+            true),
+            _drive)
+          .withTimeout(0.4)
+        ))
+        .andThen(_drive::stopMotors)
+        .andThen(new RunCommand(_shooter::shoot, _shooter)
+          .until(() -> _shooter.atSpeed() && _intake.inFirePosition()))
+        .andThen(_shooter::feed)
+        .andThen(() -> _intake.setIntakeMotor(-1))
+        .andThen(new WaitCommand(0.4))
+        .andThen(_shooter::stopFeed)
+        .andThen(_shooter::stopShoot)
+      )
           // .andThen(_shooter::stopShoot)
+      .onFalse(
+        new InstantCommand(_drive::stopMotors, _drive)
+          .andThen(() -> _drive.setDriveBrakeMode(false)));
     _resetRobotButton
         .onTrue(new InstantCommand(() -> {
 
@@ -204,26 +254,26 @@ public class RobotContainer {
           _intake.stopIntakeMotor();
         }, _shooter, _intake));
 
-    m_driverController.start()
-        .onTrue(new InstantCommand(() -> fieldCentric = !fieldCentric));
 
-    m_driverController.povDown()
-      .onTrue(new InstantCommand(() -> _drive.setTargetAngle(0))
-        // .unless(_drive::isInAutoRotatePosition)
-      )
-      .onFalse(new InstantCommand(_drive::stopAutoRotating));
 
-    m_driverController.povUp()
-      .onTrue(new InstantCommand(() -> _drive.setTargetAngle(180 + 60))
-        // .unless(_drive::isInAutoRotatePosition)
-      )
-      .onFalse(new InstantCommand(_drive::stopAutoRotating));
 
-    m_driverController.povRight()
-      .onTrue(new InstantCommand(() -> _drive.setTargetAngle(90))
-        // .unless(_drive::isInAutoRotatePosition)
-      )
-      .onFalse(new InstantCommand(_drive::stopAutoRotating));
+
+
+
+
+
+
+
+    // m_driverController.start()
+    //     .onTrue(new InstantCommand(() -> fieldCentric = !fieldCentric));
+
+
+
+
+
+
+
+
 
     m_driverController.a()
         .onTrue(
@@ -274,29 +324,25 @@ public class RobotContainer {
         .onTrue(new InstantCommand(_shooter::intake))
         .onFalse(new InstantCommand(_shooter::stopIntake));
 
-    new JoystickButton(_buttonPanel, 7)
-        .onTrue(new InstantCommand(_shooter::feed)
-            .andThen(new InstantCommand(() -> _intake.setIntakeMotor(-1))))
-        .onFalse(new InstantCommand(_shooter::stopFeed)
-            .andThen(new InstantCommand(_intake::stopIntakeMotor)));
-
     new JoystickButton(_buttonPanel, 8)
         .onTrue(new InstantCommand(_shooter::shoot))
         .onFalse(new InstantCommand(_shooter::stopShoot));
 
+    new JoystickButton(_buttonPanel, 7)
+      .onTrue(new IntakeCommand(-1, _intake))
+      .onFalse(new IntakeCommand(0, _intake));
+    
     new JoystickButton(_buttonPanel, 9)
-        .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(1)))
-        .onFalse(new InstantCommand(_intake::stopIntakeMotor));
+      .onTrue(new IntakeCommand(1, _intake))
+      .onFalse(new IntakeCommand(0, _intake));
 
     new JoystickButton(_buttonPanel, 10)
-        .onTrue(new InstantCommand(() -> _intake.movePositionMotor(0.2)))
-        .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
+      .onTrue(new MoveIntakeCommand(-0.2, _intake))
+      .onFalse(new MoveIntakeCommand(0, _intake));
 
     new JoystickButton(_buttonPanel, 11)
-        .onTrue(new InstantCommand(() -> _intake.movePositionMotor(-0.2)))
-        .onFalse(new InstantCommand(() -> _intake.movePositionMotor(0)));
-    }
-    
+        .onTrue(new MoveIntakeCommand(0.2, _intake))
+        .onFalse(new MoveIntakeCommand(0, _intake));
   }
 
   public Command getTestPathCommand() {
@@ -394,58 +440,5 @@ public class RobotContainer {
   public Command getAutonomousCommand() {
     // An example command will be run in autonomous
     return new InstantCommand();
-  }
-
-  public Command getCenterAutoCommand(){
-    return new RunCommand(_shooter::shoot, _shooter)
-          .until(_shooter::atSpeed)
-        .andThen(_shooter::feed)
-        .andThen(new WaitCommand(0.15))
-        .andThen(new InstantCommand(() -> {
-          _intake.setPosition(Constants.IntakeConstants.kDeployedPos);
-        }, _intake))
-        .andThen(new WaitCommand(0.25))
-        .andThen(_shooter::stopShoot)
-        .andThen(_shooter::stopFeed)
-        .andThen(new WaitCommand(0.15))
-        .andThen(new ParallelCommandGroup(
-          // new InstantCommand(() -> _intake.setIntakeMotor(1.0), _intake),
-
-          new RunCommand(() -> _intake.setIntakeMotor(1.0), _intake)
-            .until(_intake::hasGamePiece),
-
-          new RunCommand(() -> _drive.drive(
-            1,
-            0,
-            0,
-            true),
-            _drive)
-          .withTimeout(1.5)
-        )).withTimeout(5)
-        .andThen(_drive::stopMotors, _drive)
-        .andThen(_intake::stopIntakeMotor)
-        .andThen(() -> _intake.setPosition(Constants.IntakeConstants.kRetractedPos))
-        .andThen(new ParallelCommandGroup(
-          new RunCommand(() -> _drive.drive(
-            -1.5,
-            0,
-            0,
-            true),
-            _drive)
-          .withTimeout(1.1)
-        ))
-        .andThen(_drive::stopMotors)
-        .andThen(new RunCommand(_shooter::shoot, _shooter)
-          .until(() -> _shooter.atSpeed() && _intake.inFirePosition()))
-        .andThen(_shooter::feed)
-        .andThen(() -> _intake.setIntakeMotor(-1))
-        .andThen(new WaitCommand(1))
-        .finallyDo(() -> {
-          _shooter.stopFeed();
-          _shooter.stopShoot();
-          _intake.stopIntakeMotor();
-          _drive.stopMotors();
-        });
-        
   }
 }
