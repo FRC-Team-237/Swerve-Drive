@@ -21,7 +21,7 @@ import edu.wpi.first.math.util.Units;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
-  public static final LoggingType logLevel = LoggingType.SMART_DASH; 
+  public static final LoggingType logLevel = LoggingType.NO_LOGGING; 
   public static enum LoggingType {
     NO_LOGGING,
     SMART_DASH,
