@@ -6,36 +6,21 @@ package frc.robot;
 
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.Utilities.CommandFactory;
-import frc.robot.Utilities.PathUtilities;
+import frc.robot.Utilities.NavUtilites;
 import frc.robot.commands.IntakeCommand;
 import frc.robot.commands.MoveIntakeCommand;
-import frc.robot.commands.RotateToAngle;
 import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.HangerSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
-import frc.robot.subsystems.DriveTrain.RobotSide;
 import frc.robot.subsystems.IntakeSubsystem.Action;
-import frc.robot.subsystems.IntakeSubsystem.Action;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import com.pathplanner.lib.auto.NamedCommands;
-import com.pathplanner.lib.commands.PathPlannerAuto;
-
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
-import edu.wpi.first.wpilibj2.command.ParallelRaceGroup;
 import edu.wpi.first.wpilibj2.command.RunCommand;
-import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
@@ -56,17 +41,9 @@ public class RobotContainer {
   // Replace with CommandPS4Controller or CommandJoystick if needed
   private final CommandXboxController m_driverController = new CommandXboxController(
       OperatorConstants.kXboxControllerPort);
-  private final Joystick _keyboard = new Joystick(OperatorConstants.kLogitechControllerPort);
-  private final JoystickButton _resetRobotButton = new JoystickButton(_keyboard, 1);
-  private final JoystickButton _toggleFront = new JoystickButton(_keyboard, 3);
-  private final Joystick _3AxisJoystick = new Joystick(1);
   private final Joystick _buttonPanel = new Joystick(OperatorConstants.kButtonPanelPort);
-
-  private final JoystickButton _testPath = new JoystickButton(_keyboard, 2);
-
   public final IntakeSubsystem _intake = new IntakeSubsystem();
   private final HangerSubsystem _hanger = new HangerSubsystem();
-  private final Map<String, Command> _commandMap = new HashMap<String, Command>();
   private boolean fieldCentric = true;
   private final ShooterSubsystem _shooter = new ShooterSubsystem();
 
@@ -83,7 +60,6 @@ public class RobotContainer {
   public RobotContainer() {
     // Configure the trigger bindings
     SmartDashboard.putString("Path to Test", "Test Path");
-    setupNamedCommands();
     configureBindings();
 
     _drive.setDefaultCommand((new RunCommand(() -> {
@@ -152,72 +128,6 @@ public class RobotContainer {
     // System.out.println("Toggled field centric");
     // }));
 
-    _testPath
-      .onTrue(
-        // .andThen(new PathPlannerAuto("Two Note Auto"))
-        new RunCommand(_shooter::shoot, _shooter)
-          .until(_shooter::atSpeed)
-        .andThen(_shooter::feed)
-        .andThen(new WaitCommand(0.15))
-        .andThen(new InstantCommand(() -> {
-          _intake.setPosition(Constants.IntakeConstants.kDeployedPos);
-        }, _intake))
-        .andThen(new WaitCommand(0.25))
-        .andThen(_shooter::stopShoot)
-        .andThen(_shooter::stopFeed)
-        .andThen(new WaitCommand(0.15))
-        .andThen(new ParallelCommandGroup(
-          // new InstantCommand(() -> _intake.setIntakeMotor(1.0), _intake),
-
-          new RunCommand(() -> _intake.setIntakeMotor(1.0), _intake)
-            .until(_intake::hasGamePiece),
-
-          new RunCommand(() -> _drive.drive(
-            1,
-            0,
-            0,
-            true),
-            _drive)
-          .withTimeout(1.5)
-        )).withTimeout(5)
-        .andThen(_drive::stopMotors, _drive)
-        .andThen(_intake::stopIntakeMotor)
-        .andThen(() -> _intake.setPosition(Constants.IntakeConstants.kRetractedPos))
-        .andThen(new ParallelCommandGroup(
-          new RunCommand(() -> _drive.drive(
-            -1.5,
-            0,
-            0,
-            true),
-            _drive)
-          .withTimeout(0.4)
-        ))
-        .andThen(_drive::stopMotors)
-        .andThen(new RunCommand(_shooter::shoot, _shooter)
-          .until(() -> _shooter.atSpeed() && _intake.inFirePosition()))
-        .andThen(_shooter::feed)
-        .andThen(() -> _intake.setIntakeMotor(-1))
-        .andThen(new WaitCommand(0.4))
-        .andThen(_shooter::stopFeed)
-        .andThen(_shooter::stopShoot)
-      )
-          // .andThen(_shooter::stopShoot)
-      .onFalse(
-        new InstantCommand(_drive::stopMotors, _drive)
-          .andThen(() -> _drive.setDriveBrakeMode(false)));
-    _resetRobotButton
-        .onTrue(new InstantCommand(() -> {
-
-        }, _drive));
-
-    _toggleFront
-        .onTrue(new InstantCommand(() -> {
-          if (_drive.getFrontOfRobot() == RobotSide.kIntake) {
-            _drive.setFrontOfRobot(RobotSide.kShooter);
-          } else {
-            _drive.setFrontOfRobot(RobotSide.kIntake);
-          }
-        }));
     // m_driverController.povUp()
     // .whileTrue(new TestFollowCommand());
 
@@ -241,8 +151,8 @@ public class RobotContainer {
         .onTrue(new InstantCommand(_shooter::intake))
         .onFalse(new InstantCommand(_shooter::stopIntake));
     // m_driverController.rightBumper()
-    //     .onTrue(new InstantCommand(_shooter::intake))
-    //     .onFalse(new InstantCommand(_shooter::stopIntake));
+    // .onTrue(new InstantCommand(_shooter::intake))
+    // .onFalse(new InstantCommand(_shooter::stopIntake));
 
     m_driverController.leftTrigger(0.1)
         .onTrue(new InstantCommand(_shooter::spit)
@@ -253,27 +163,6 @@ public class RobotContainer {
           _shooter.stopShoot();
           _intake.stopIntakeMotor();
         }, _shooter, _intake));
-
-
-
-
-
-
-
-
-
-
-
-    // m_driverController.start()
-    //     .onTrue(new InstantCommand(() -> fieldCentric = !fieldCentric));
-
-
-
-
-
-
-
-
 
     m_driverController.a()
         .onTrue(
@@ -294,61 +183,61 @@ public class RobotContainer {
     // button panel
 
     // hanger retract
-    
 
-    if (RobotBase.isReal()){
+    if (RobotBase.isReal()) {
       new JoystickButton(_buttonPanel, 1)
-        .onTrue(new InstantCommand(_hanger::retract))
-        .onFalse(new InstantCommand(_hanger::stop));
+          .onTrue(new InstantCommand(_hanger::retract))
+          .onFalse(new InstantCommand(_hanger::stop));
 
-    // hanger extend
-    new JoystickButton(_buttonPanel, 2)
-        .onTrue(new InstantCommand(_hanger::extend))
-        .onFalse(new InstantCommand(_hanger::stop));
+      // hanger extend
+      new JoystickButton(_buttonPanel, 2)
+          .onTrue(new InstantCommand(_hanger::extend))
+          .onFalse(new InstantCommand(_hanger::stop));
 
-    // amp shoot
-    new JoystickButton(_buttonPanel, 3)
-        .onTrue(new InstantCommand(_shooter::spit)
-            .andThen(new InstantCommand(_shooter::feed)
-                .andThen(_intake.getActionCommand(Action.FIRE))))
-        .onFalse(new InstantCommand(() -> {
-          _shooter.stopFeed();
-          _shooter.stopShoot();
-          _intake.stopIntakeMotor();
-        }, _shooter, _intake));
-        new JoystickButton(_buttonPanel, 4)
-        .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(-1)))
-        .onFalse(new InstantCommand(_intake::stopIntakeMotor));
+      // amp shoot
+      new JoystickButton(_buttonPanel, 3)
+          .onTrue(new InstantCommand(_shooter::spit)
+              .andThen(new InstantCommand(_shooter::feed)
+                  .andThen(_intake.getActionCommand(Action.FIRE))))
+          .onFalse(new InstantCommand(() -> {
+            _shooter.stopFeed();
+            _shooter.stopShoot();
+            _intake.stopIntakeMotor();
+          }, _shooter, _intake));
+      new JoystickButton(_buttonPanel, 4)
+          .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(-1)))
+          .onFalse(new InstantCommand(_intake::stopIntakeMotor));
 
-    new JoystickButton(_buttonPanel, 6)
-        .onTrue(new InstantCommand(_shooter::intake))
-        .onFalse(new InstantCommand(_shooter::stopIntake));
+      new JoystickButton(_buttonPanel, 6)
+          .onTrue(new InstantCommand(_shooter::intake))
+          .onFalse(new InstantCommand(_shooter::stopIntake));
 
-    new JoystickButton(_buttonPanel, 8)
-        .onTrue(new InstantCommand(_shooter::shoot))
-        .onFalse(new InstantCommand(_shooter::stopShoot));
+      new JoystickButton(_buttonPanel, 8)
+          .onTrue(new InstantCommand(_shooter::shoot))
+          .onFalse(new InstantCommand(_shooter::stopShoot));
 
-    new JoystickButton(_buttonPanel, 7)
-      .onTrue(new IntakeCommand(-1, _intake))
-      .onFalse(new IntakeCommand(0, _intake));
-    
-    new JoystickButton(_buttonPanel, 9)
-      .onTrue(new IntakeCommand(1, _intake))
-      .onFalse(new IntakeCommand(0, _intake));
+      new JoystickButton(_buttonPanel, 7)
+          .onTrue(new IntakeCommand(-1, _intake))
+          .onFalse(new IntakeCommand(0, _intake));
 
-    new JoystickButton(_buttonPanel, 10)
-      .onTrue(new MoveIntakeCommand(-0.2, _intake))
-      .onFalse(new MoveIntakeCommand(0, _intake));
+      new JoystickButton(_buttonPanel, 9)
+          .onTrue(new IntakeCommand(1, _intake))
+          .onFalse(new IntakeCommand(0, _intake));
 
-    new JoystickButton(_buttonPanel, 11)
-        .onTrue(new MoveIntakeCommand(0.2, _intake))
-        .onFalse(new MoveIntakeCommand(0, _intake));
+      new JoystickButton(_buttonPanel, 10)
+          .onTrue(new MoveIntakeCommand(-0.2, _intake))
+          .onFalse(new MoveIntakeCommand(0, _intake));
+
+      new JoystickButton(_buttonPanel, 11)
+          .onTrue(new MoveIntakeCommand(0.2, _intake))
+          .onFalse(new MoveIntakeCommand(0, _intake));
+    }
   }
 
   public Command getTestPathCommand() {
     String pathName = SmartDashboard.getString("Path to Test", "Test Path");
     System.out.println(pathName);
-    return PathUtilities.makePath(pathName, _drive);
+    return NavUtilites.makePath(pathName, _drive);
   }
 
   /**
@@ -371,51 +260,7 @@ public class RobotContainer {
    * After creating and naming the commands, they are registered with the
    * NamedCommands class for use with the path planner.
    */
-  public void setupNamedCommands() {
-
-    // Target command
-    Command targetCommand = new InstantCommand();
-    targetCommand.setName("TargetCommand");
-    _commandMap.put(targetCommand.getName(), targetCommand);
-
-    // shoot command
-    Command shootCommand = new RunCommand(() -> {
-      _shooter.shoot();
-    }, _shooter)
-        .until(_shooter::atSpeed)
-        .withTimeout(2)
-        .andThen(() -> {
-          _shooter.feed();
-          _intake.setIntakeMotor(-0.75);
-        }, _shooter, _intake);
-    shootCommand.setName("ShootCommand");
-    _commandMap.put(shootCommand.getName(), shootCommand);
-
-    // Command to Pick up the notes
-    Command pickUpCommand = _intake.getActionCommand(Action.INTAKE)
-        .andThen(_intake.getActionCommand(Action.LOAD));
-    pickUpCommand.setName("PickUpCommand");
-    _commandMap.put(pickUpCommand.getName(), pickUpCommand);
-
-    // Command to Eject notes
-    Command ejectCommand = _intake.getActionCommand(Action.EJECT);
-    ejectCommand.setName("EjectCommand");
-    _commandMap.put(ejectCommand.getName(), ejectCommand);
-
-    // Command to Set Front to Intake
-    Command setFrontIntake = new InstantCommand(() -> _drive.setFrontOfRobot(RobotSide.kIntake), _drive);
-    setFrontIntake.setName("SetFrontIntake");
-    _commandMap.put(setFrontIntake.getName(), setFrontIntake);
-    // Command to Set Front to Shooter
-    Command setFrontShooter = new InstantCommand(() -> _drive.setFrontOfRobot(RobotSide.kShooter), _drive);
-    setFrontShooter.setName("SetFrontShooter");
-    _commandMap.put(setFrontShooter.getName(), setFrontShooter);
-
-    // Register all Named commands for use with path planner.
-    _commandMap.forEach((key, value) -> {
-      NamedCommands.registerCommand(key, value);
-    });
-  }
+  
 
   public Command getCommand(CommandType type) {
     switch (type) {
@@ -439,6 +284,52 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // An example command will be run in autonomous
-    return new InstantCommand();
+    return makeCenterAutoCommand();
   }
+
+  public Command makeCenterAutoCommand()
+    {
+      return new RunCommand(_shooter::shoot, _shooter)
+      .until(_shooter::atSpeed)
+      .andThen(_shooter::feed)
+      .andThen(new WaitCommand(0.15))
+      .andThen(new InstantCommand(() -> {
+        _intake.setPosition(Constants.IntakeConstants.kDeployedPos);
+      }, _intake))
+      .andThen(new WaitCommand(0.25))
+      .andThen(_shooter::stopShoot)
+      .andThen(_shooter::stopFeed)
+      .andThen(new WaitCommand(0.15))
+      .andThen(new ParallelCommandGroup(
+          new RunCommand(() -> _intake.setIntakeMotor(1.0), _intake)
+              .until(_intake::hasGamePiece),
+
+          new RunCommand(() -> _drive.drive(
+              1,
+              0,
+              0,
+              true),
+              _drive)
+              .withTimeout(1.5)))
+      .withTimeout(5)
+      .andThen(_drive::stopMotors, _drive)
+      .andThen(_intake::stopIntakeMotor)
+      .andThen(() -> _intake.setPosition(Constants.IntakeConstants.kRetractedPos))
+      .andThen(new ParallelCommandGroup(
+          new RunCommand(() -> _drive.drive(
+              -1.5,
+              0,
+              0,
+              true),
+              _drive)
+              .withTimeout(1.0)))
+      .andThen(_drive::stopMotors)
+      .andThen(new RunCommand(_shooter::shoot, _shooter)
+          .until(() -> _shooter.atSpeed() && _intake.inFirePosition()))
+      .finallyDo(() -> {
+        _shooter.stopFeed();
+        _shooter.stopIntake();
+        _intake.stopIntakeMotor();
+      }); 
+    }
 }

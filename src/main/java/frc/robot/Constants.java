@@ -127,4 +127,20 @@ public static class SwerveChassis {
     public static double kSpitMultiplier = 0.2;
     public static double kShooterFeedMultiplier = 0.9;
   }
+  public static class GameConstants {
+    public static enum FieldElement {
+      kSpeaker,
+      kSource,
+      kAmp,
+      kStage
+    }
+    public static final double kBlueSourceAngle = -120; 
+    public static final double kRedSourceAngle = 120; 
+    public static final double kBlueAmpAngle = 90; 
+    public static final double kRedAmpAngle = -90;
+    
+    public static final double kBlueStageAngle = -120; 
+    public static final double kRedStageAngle = 120; 
+    
+  }
 }

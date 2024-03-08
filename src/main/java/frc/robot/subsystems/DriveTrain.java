@@ -4,6 +4,10 @@
 
 package frc.robot.subsystems;
 
+import java.util.Optional;
+
+import javax.swing.text.html.parser.Element;
+
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.util.PathPlannerLogging;
 
@@ -31,11 +35,12 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
-
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.simulation.ADIS16470_IMUSim;
 
 import frc.robot.Constants;
 import frc.robot.Constants.SwerveChassis;
+import frc.robot.Utilities.NavUtilites;
 import frc.robot.subsystems.SwerveModule.BrakeMode;
 import frc.robot.subsystems.SwerveModule.ModPosition;
 import frc.robot.subsystems.SwerveModule.Motor;
@@ -54,15 +59,25 @@ public class DriveTrain extends SubsystemBase {
   private StructPublisher<Pose2d> _targetPub; 
   private StructPublisher<ChassisSpeeds> _speedPub; 
   private double _lastTime;
+  private Optional<Alliance> _alliance; 
 
   public boolean isAutoRotating = false;
-  public double targetAngle = 0;
+  private double targetAngle = 0;
+
+  public double getTargetAngle() {
+    return targetAngle;
+  }
+
+  public void setTargetAngle(double angle) {
+    targetAngle = angle;
+  }
   private PIDController _autoRotatePID;
 
   public enum RobotSide {
     kShooter, 
     kIntake
   }
+  
   private RobotSide _front; 
   public DriveTrain() {
     this.setName("Drive Train");
@@ -90,7 +105,7 @@ public class DriveTrain extends SubsystemBase {
     }));
 
     _autoRotatePID.enableContinuousInput(-180, 180);
-    _autoRotatePID.setTolerance(10.0);
+    _autoRotatePID.setTolerance(10.0,0.1);
 
     // set up Odometry and Pose
     _swerveDriveOdometry = new SwerveDriveOdometry(Constants.SwerveChassis.SWERVE_KINEMATICS,
@@ -125,6 +140,7 @@ public class DriveTrain extends SubsystemBase {
     _speedPub = NetworkTableInstance.getDefault().getStructTopic("Chassis Speeds", ChassisSpeeds.struct).publish();
     _lastTime = Timer.getFPGATimestamp();  
     _front = RobotSide.kIntake; 
+    _alliance = DriverStation.getAlliance(); 
   }
   private SwerveModulePosition[] getEstimatedPosition() {
     SwerveModulePosition[] positions = new SwerveModulePosition[4];
@@ -235,34 +251,34 @@ public class DriveTrain extends SubsystemBase {
     this.isAutoRotating = shouldAutoRotate;
   }
 
-  public double targetDelta = 0.0;
+  private double targetDelta = 0.0;
+
+  public double getTargetDelta() {
+    return targetDelta;
+  }
+
+  public void setTargetDelta(double delta) {
+    targetDelta = delta;
+  }
 
   public void drive(double xVelocity_m_per_s, double yVelocity_m_per_s, double omega_rad_per_s, boolean fieldcentric){
     SwerveModuleState[] swerveModuleStates;
 
     //System.out.println("***X: "+xVelocity_m_per_s+" ***Y: "+yVelocity_m_per_s+" ***o: "+omega_rad_per_s);
     if (fieldcentric) { // field-centric swerve
-      // double angleDelta = _autoRotatePID.calculate(this.getAngle());
-      // double angleDelta = realDistance(targetAngle);
-      // double easing = easeToAngle(angleDelta, 1);
-
-      // SmartDashboard.putNumber("Drive/Angle Delta", angleDelta);
-      // SmartDashboard.putNumber("Drive/Ease Value", easing);
+       double angleDelta = _autoRotatePID.calculate(this.getAngle());
+      
       SmartDashboard.putBoolean("Drive/AutoRotating", isAutoRotating);
       if(!isAutoRotating) {
         targetDelta = omega_rad_per_s;
       }
-
-      double angleDelta = realDistance(targetAngle);
-      double easing = easeToAngle(angleDelta, 0.3);
-
       SmartDashboard.putNumber("Drive/Target Delta", targetDelta);
 
       swerveModuleStates = SwerveChassis.SWERVE_KINEMATICS.toSwerveModuleStates(
           ChassisSpeeds.fromFieldRelativeSpeeds(
               xVelocity_m_per_s,
               yVelocity_m_per_s,
-              easing,
+              (isAutoRotating) ? angleDelta : omega_rad_per_s,
               Rotation2d.fromDegrees(_imu.getAngle(IMUAxis.kYaw))));
     } else { // robot-centric swerve; does not use IMU
       swerveModuleStates = SwerveChassis.SWERVE_KINEMATICS.toSwerveModuleStates(
@@ -271,7 +287,11 @@ public class DriveTrain extends SubsystemBase {
               yVelocity_m_per_s,
               omega_rad_per_s));
     }
-
+    // Evaluate if auto turning is done. If so turn it off. 
+    if (isNear(getTargetAngle()))
+    {
+      setIsAutoRotating(false);
+    }
     SmartDashboard.putBoolean("Drive/Field Centric", fieldcentric);
     SmartDashboard.putNumber("Drive/Angle", getAngle());
     SmartDashboard.putNumber("Drive/Rotation", new Rotation2d(_imu.getAngle(IMUAxis.kYaw)).getDegrees());
@@ -390,6 +410,15 @@ public class DriveTrain extends SubsystemBase {
     }
     return swerveModuleStates; 
   }
+
+  public void turnToFieldElement(Constants.GameConstants.FieldElement element) {
+    if (!_alliance.isPresent()){
+      return; 
+    }
+    setTargetAngle(NavUtilites.angleForFieldElement(element, _alliance.get()));
+    setIsAutoRotating(true);
+  }
+  
 }
 
 

@@ -22,14 +22,14 @@ public class RotateToAngle extends Command {
   @Override
   public void initialize() {
     // drive.setIsAutoRotating(true);
-    drive.targetAngle = angle;
-    System.out.println("Distance from " + drive.targetAngle + " to " + drive.getAngle() + " is " + drive.realDistance(drive.targetAngle));
+    drive.setTargetAngle(angle);
+    System.out.println("Distance from " + drive.getTargetAngle() + " to " + drive.getAngle() + " is " + drive.realDistance(drive.getTargetAngle()));
   }
 
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    drive.targetDelta = 1;
+    
   }
 
   // Called once the command ends or is interrupted.
@@ -37,11 +37,12 @@ public class RotateToAngle extends Command {
   public void end(boolean interrupted) {
     // System.out.println("Ended auto rotate");
     // drive.setIsAutoRotating(false);
+
   }
 
   // Returns true when the command should end.
   @Override
   public boolean isFinished() {
-    return drive.isNear(angle);
+    return true;
   }
 }
