@@ -26,7 +26,9 @@ import com.pathplanner.lib.commands.PathPlannerAuto;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -238,6 +240,9 @@ public class RobotContainer {
     m_driverController.rightBumper()
         .onTrue(new InstantCommand(_shooter::intake))
         .onFalse(new InstantCommand(_shooter::stopIntake));
+    // m_driverController.rightBumper()
+    //     .onTrue(new InstantCommand(_shooter::intake))
+    //     .onFalse(new InstantCommand(_shooter::stopIntake));
 
     m_driverController.leftTrigger(0.1)
         .onTrue(new InstantCommand(_shooter::spit)
@@ -289,7 +294,10 @@ public class RobotContainer {
     // button panel
 
     // hanger retract
-    new JoystickButton(_buttonPanel, 1)
+    
+
+    if (RobotBase.isReal()){
+      new JoystickButton(_buttonPanel, 1)
         .onTrue(new InstantCommand(_hanger::retract))
         .onFalse(new InstantCommand(_hanger::stop));
 
@@ -308,14 +316,7 @@ public class RobotContainer {
           _shooter.stopShoot();
           _intake.stopIntakeMotor();
         }, _shooter, _intake));
-    // .onTrue(_commandMap.get("ShootCommand"))
-    // .onFalse(new InstantCommand(() -> {
-    // _shooter.stopShoot();
-    // _shooter.stopFeed();
-    // _intake.stopIntakeMotor();
-    // },_shooter,_intake));
-
-    new JoystickButton(_buttonPanel, 4)
+        new JoystickButton(_buttonPanel, 4)
         .onTrue(new InstantCommand(() -> _intake.setIntakeMotor(-1)))
         .onFalse(new InstantCommand(_intake::stopIntakeMotor));
 
