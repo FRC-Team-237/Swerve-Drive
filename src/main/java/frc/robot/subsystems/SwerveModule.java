@@ -27,8 +27,6 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N2;
-import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -37,7 +35,6 @@ import edu.wpi.first.wpilibj.simulation.LinearSystemSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
-import frc.robot.RobotContainer;
 
 public class SwerveModule extends SubsystemBase {
   /** Creates a new SwervePod. */
@@ -99,15 +96,27 @@ public class SwerveModule extends SubsystemBase {
     _driveMotor = new TalonFX(id);
     // set up config
     TalonFXConfiguration config = new TalonFXConfiguration();
-    config.Slot0.kP = Constants.SwerveChassis.kPDrive;
-    config.Slot0.kI = Constants.SwerveChassis.kIDrive;
-    config.Slot0.kD = Constants.SwerveChassis.kDDrive;
-    config.Slot0.kV = Constants.SwerveChassis.kVDrive;
+    // config.Slot0.kP = Constants.SwerveChassis.kPDrive;
+    // config.Slot0.kI = Constants.SwerveChassis.kIDrive;
+    // config.Slot0.kD = Constants.SwerveChassis.kDDrive;
+    // config.Slot0.kV = Constants.SwerveChassis.kVDrive;
+
+    config.Slot0.kA = 0.01;
+    config.Slot0.kD = 0.015;
+    config.Slot0.kG = 0.0;
+    config.Slot0.kI = 0.0;
+    config.Slot0.kP = 1.8;
+    config.Slot0.kS = 1.75;
+    config.Slot0.kV = 0.68;
+
+    config.Feedback.SensorToMechanismRatio = 6.75;
+
+
     config.Voltage.PeakForwardVoltage = Constants.SwerveChassis.kPeakForwardFF;
     config.Voltage.PeakReverseVoltage = Constants.SwerveChassis.kPeakReverseFF;
     
-    config.TorqueCurrent.PeakForwardTorqueCurrent = 80;
-    config.TorqueCurrent.PeakReverseTorqueCurrent = 80; 
+    config.TorqueCurrent.PeakForwardTorqueCurrent = 800;
+    config.TorqueCurrent.PeakReverseTorqueCurrent = -800; 
     _driveMotor.getConfigurator().apply(config);
     _driveMotor.setInverted(outputInverted);
     if(RobotBase.isSimulation()){
@@ -142,7 +151,7 @@ public class SwerveModule extends SubsystemBase {
 
     _integratedNeoEncoder = _angleMotor.getEncoder(); 
     _integratedNeoEncoder.setPositionConversionFactor(Constants.SwerveChassis.kAngleConversionFactor); 
-    _integratedNeoEncoder.setPosition(0.0);
+    _integratedNeoEncoder.setPosition(_absAngleEncoder.getPosition());
     if (_absAngleEncoder != null){
       _anglePID.setFeedbackDevice(_absAngleEncoder);
     }
@@ -242,14 +251,13 @@ public class SwerveModule extends SubsystemBase {
     VelocityVoltage vv = new VelocityVoltage(
       0.0,
       0.0,
-      true,
+      false,
       0,
       0,
       false,
       false,
       false);
-    vv.withVelocity(desiredState.speedMetersPerSecond / (2 * Math.PI * Constants.SwerveChassis.kWheelRadius)
-        * Constants.SwerveChassis.kDriveGearRatio);
+    vv.withVelocity(desiredState.speedMetersPerSecond / (2 * Math.PI * Constants.SwerveChassis.kWheelRadius));
     //if (Math.abs(vv.Velocity) == 0.0 )
       _driveMotor.setControl(vv);
     //else 

@@ -262,7 +262,7 @@ public class DriveTrain extends SubsystemBase {
           ChassisSpeeds.fromFieldRelativeSpeeds(
               xVelocity_m_per_s,
               yVelocity_m_per_s,
-              easing,
+              omega_rad_per_s,
               Rotation2d.fromDegrees(_imu.getAngle(IMUAxis.kYaw))));
     } else { // robot-centric swerve; does not use IMU
       swerveModuleStates = SwerveChassis.SWERVE_KINEMATICS.toSwerveModuleStates(

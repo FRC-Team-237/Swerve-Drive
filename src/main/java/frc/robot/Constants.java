@@ -21,7 +21,7 @@ import edu.wpi.first.math.util.Units;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
-  public static final LoggingType logLevel = LoggingType.SMART_DASH; 
+  public static final LoggingType logLevel = LoggingType.NO_LOGGING; 
   public static enum LoggingType {
     NO_LOGGING,
     SMART_DASH,
@@ -48,15 +48,15 @@ public static class SwerveChassis {
     public static final double kDDrive = 0.0001;
     public static final double kVDrive =0.11;
     public static final double kSDrive = 0.0;
-    public static final double kPeakForwardFF = 8; 
-    public static final double kPeakReverseFF = -8;
+    public static final double kPeakForwardFF = 16; 
+    public static final double kPeakReverseFF = -16;
     private static final double TRACK_WIDTH = 22;
     private static final double WHEEL_BASE = 22; 
     // max speed in meters per second. 
     public static double kWheelRadius = Units.inchesToMeters(2.0);  
 
     public static double kMaxVelocity = 2.0;
-    public static double kSuperEpicTurboMaxVelocity = 5.0; 
+    public static double kSuperEpicTurboMaxVelocity = 20.0; 
     public static double kMaxRotationalVelocity = 0.3;
     public static double kMaxRotationsPerSec = kMaxVelocity/(2*Math.PI*kWheelRadius);
     public static double degreesPerRotation = 30.0;
@@ -121,7 +121,7 @@ public static class SwerveChassis {
     public static int kShooterHighMotorId = 21;
     public static int kShooterFeederMotorId = 22;
 
-    public static double kShooterMaxTargetRPM = 5200;
+    public static double kShooterMaxTargetRPM = 4500;
     // public static double kShooterMaxTargetRPM = 1.0;
     public static double kIntakeMultiplier = 0.15;
     public static double kSpitMultiplier = 0.2;
