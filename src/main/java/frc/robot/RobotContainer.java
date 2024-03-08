@@ -5,6 +5,7 @@
 package frc.robot;
 
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.Constants.GameConstants.FieldElement;
 import frc.robot.Utilities.CommandFactory;
 import frc.robot.Utilities.NavUtilites;
 import frc.robot.commands.IntakeCommand;
@@ -172,14 +173,14 @@ public class RobotContainer {
     m_driverController.b()
         .onTrue(_intake.getActionCommand(Action.LOAD)
             .andThen(() -> _shooter.stopFeed(), _shooter));
+   
+    // Auto Rotate 
     m_driverController.y()
-        .onTrue(new InstantCommand(_hanger::extend))
-        .onFalse(new InstantCommand(_hanger::stop));
-
-    m_driverController.x()
-        .onTrue(new InstantCommand(_hanger::retract))
-        .onFalse(new InstantCommand(_hanger::stop));
-
+    .onTrue(new InstantCommand(() -> _drive.turnToFieldElement(FieldElement.kSource), _drive)) 
+    .onFalse(new InstantCommand(() -> _drive.setIsAutoRotating(false), _drive)); 
+  m_driverController.x()
+  .onTrue(new InstantCommand(() -> _drive.turnToFieldElement(FieldElement.kSpeaker), _drive)) 
+    .onFalse(new InstantCommand(() -> _drive.setIsAutoRotating(false), _drive)); 
     // button panel
 
     // hanger retract

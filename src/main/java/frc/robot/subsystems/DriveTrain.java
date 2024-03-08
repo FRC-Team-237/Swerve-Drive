@@ -33,6 +33,7 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -59,7 +60,7 @@ public class DriveTrain extends SubsystemBase {
   private StructPublisher<Pose2d> _targetPub; 
   private StructPublisher<ChassisSpeeds> _speedPub; 
   private double _lastTime;
-  private Optional<Alliance> _alliance; 
+  private Alliance _alliance; 
 
   public boolean isAutoRotating = false;
   private double targetAngle = 0;
@@ -69,7 +70,8 @@ public class DriveTrain extends SubsystemBase {
   }
 
   public void setTargetAngle(double angle) {
-    targetAngle = angle;
+    targetAngle = angle; 
+    _autoRotatePID.setSetpoint(angle);
   }
   private PIDController _autoRotatePID;
 
@@ -140,7 +142,8 @@ public class DriveTrain extends SubsystemBase {
     _speedPub = NetworkTableInstance.getDefault().getStructTopic("Chassis Speeds", ChassisSpeeds.struct).publish();
     _lastTime = Timer.getFPGATimestamp();  
     _front = RobotSide.kIntake; 
-    _alliance = DriverStation.getAlliance(); 
+    _alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
+    
   }
   private SwerveModulePosition[] getEstimatedPosition() {
     SwerveModulePosition[] positions = new SwerveModulePosition[4];
@@ -158,7 +161,7 @@ public class DriveTrain extends SubsystemBase {
   }
 
   public double getAngle() {
-    return ((_imu.getAngle(IMUAxis.kYaw) - 180)) % 360 - 180;
+    return normalizeAngle(getRawAngle());
   }
 
   public double getRawAngle() {
@@ -183,7 +186,7 @@ public class DriveTrain extends SubsystemBase {
   }
 
   public boolean isNear(double angle) {
-    return Math.abs(getAngle() - angle) < 10;
+    return Math.abs(getAngle() - angle) < 2;
   }
 
   public void resetOdometry(Pose2d pose) {
@@ -237,15 +240,6 @@ public class DriveTrain extends SubsystemBase {
     return _front; 
   }
 
-  double easeToAngle(double distance, double maxSpeed) {
-    double a = 1.0 / Math.pow(2.0, Math.pow(0.015 * distance, 2.0));
-
-    if(maxSpeed - a * maxSpeed <= 0.025) {
-      return 0.0;
-    }
-
-    return maxSpeed - a * maxSpeed;
-  }
 
   public void setIsAutoRotating(boolean shouldAutoRotate) {
     this.isAutoRotating = shouldAutoRotate;
@@ -266,7 +260,10 @@ public class DriveTrain extends SubsystemBase {
 
     //System.out.println("***X: "+xVelocity_m_per_s+" ***Y: "+yVelocity_m_per_s+" ***o: "+omega_rad_per_s);
     if (fieldcentric) { // field-centric swerve
-       double angleDelta = _autoRotatePID.calculate(this.getAngle());
+      double angleDelta = 0; 
+      if (isAutoRotating){
+        angleDelta = _autoRotatePID.calculate(this.getAngle());
+      } 
       
       SmartDashboard.putBoolean("Drive/AutoRotating", isAutoRotating);
       if(!isAutoRotating) {
@@ -288,7 +285,7 @@ public class DriveTrain extends SubsystemBase {
               omega_rad_per_s));
     }
     // Evaluate if auto turning is done. If so turn it off. 
-    if (isNear(getTargetAngle()))
+    if (isNear(getTargetAngle()) || Math.abs(omega_rad_per_s) > 0.0)
     {
       setIsAutoRotating(false);
     }
@@ -296,8 +293,6 @@ public class DriveTrain extends SubsystemBase {
     SmartDashboard.putNumber("Drive/Angle", getAngle());
     SmartDashboard.putNumber("Drive/Rotation", new Rotation2d(_imu.getAngle(IMUAxis.kYaw)).getDegrees());
     SmartDashboard.putNumber("Drive/Angle Raw", _imu.getAngle(IMUAxis.kYaw));
-    SmartDashboard.putNumber("Drive/Test Angle Distance", realDistance(_autoRotatePID.getSetpoint()));
-
     // Because the resulting power is a vector sum of the robot direction and
     // rotation, it's possible that
     // the resulting vector would exceed absolute scalar value of 1. And we need to
@@ -339,8 +334,9 @@ public class DriveTrain extends SubsystemBase {
     _posePub.set(getPose2d());
     _targetPub.set(_swervePoseEstimator.getEstimatedPosition()); 
     _speedPub.set(Constants.SwerveChassis.SWERVE_KINEMATICS.toChassisSpeeds(getTargetStates())); 
-    SmartDashboard.putNumber("Gyro Angle", _imu.getAngle(IMUAxis.kYaw)); 
-    SmartDashboard.putNumber("Average Sim Frame (s)", (Timer.getFPGATimestamp() - _lastTime)); 
+    SmartDashboard.putNumber("Normalized Gyro Angle", getAngle()); 
+    SmartDashboard.putNumber("Raw Gyro Angle", getRawAngle()); 
+    
   }
    /**
    * This method updates swerve odometry. Note that we do not update it in a
@@ -412,10 +408,7 @@ public class DriveTrain extends SubsystemBase {
   }
 
   public void turnToFieldElement(Constants.GameConstants.FieldElement element) {
-    if (!_alliance.isPresent()){
-      return; 
-    }
-    setTargetAngle(NavUtilites.angleForFieldElement(element, _alliance.get()));
+    setTargetAngle(NavUtilites.angleForFieldElement(element, _alliance));
     setIsAutoRotating(true);
   }
   

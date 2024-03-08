@@ -134,8 +134,8 @@ public static class SwerveChassis {
       kAmp,
       kStage
     }
-    public static final double kBlueSourceAngle = -120; 
-    public static final double kRedSourceAngle = 120; 
+    public static final double kBlueSourceAngle = -55; 
+    public static final double kRedSourceAngle = 55; 
     public static final double kBlueAmpAngle = 90; 
     public static final double kRedAmpAngle = -90;
     
