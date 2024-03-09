@@ -160,6 +160,10 @@ public class DriveTrain extends SubsystemBase {
     return positions; 
   }
 
+  public void setGyro(double angle) {
+    _imu.setGyroAngleY(angle);
+  }
+
   public double getAngle() {
     return normalizeAngle(getRawAngle());
   }
@@ -255,8 +259,17 @@ public class DriveTrain extends SubsystemBase {
     targetDelta = delta;
   }
 
+  public double vel_x;
+  public double vel_y;
+
+  // public double magnitude;
+
   public void drive(double xVelocity_m_per_s, double yVelocity_m_per_s, double omega_rad_per_s, boolean fieldcentric){
     SwerveModuleState[] swerveModuleStates;
+
+    // double inputMagnitude = Math.sqrt(xVelocity_m_per_s * xVelocity_m_per_s + yVelocity_m_per_s * yVelocity_m_per_s);
+
+    // magnitude += 0.05 * (inputMagnitude - magnitude);
 
     //System.out.println("***X: "+xVelocity_m_per_s+" ***Y: "+yVelocity_m_per_s+" ***o: "+omega_rad_per_s);
     if (fieldcentric) { // field-centric swerve
@@ -273,15 +286,15 @@ public class DriveTrain extends SubsystemBase {
 
       swerveModuleStates = SwerveChassis.SWERVE_KINEMATICS.toSwerveModuleStates(
           ChassisSpeeds.fromFieldRelativeSpeeds(
-              xVelocity_m_per_s,
-              yVelocity_m_per_s,
+              xVelocity_m_per_s,// * magnitude,
+              yVelocity_m_per_s,// * magnitude,
               (isAutoRotating) ? angleDelta : omega_rad_per_s,
               Rotation2d.fromDegrees(_imu.getAngle(IMUAxis.kYaw))));
     } else { // robot-centric swerve; does not use IMU
       swerveModuleStates = SwerveChassis.SWERVE_KINEMATICS.toSwerveModuleStates(
           new ChassisSpeeds(
-              xVelocity_m_per_s,
-              yVelocity_m_per_s,
+              xVelocity_m_per_s,// * magnitude,
+              yVelocity_m_per_s,// * magnitude,
               omega_rad_per_s));
     }
     // Evaluate if auto turning is done. If so turn it off. 
@@ -409,6 +422,11 @@ public class DriveTrain extends SubsystemBase {
 
   public void turnToFieldElement(Constants.GameConstants.FieldElement element) {
     setTargetAngle(NavUtilites.angleForFieldElement(element, _alliance));
+    setIsAutoRotating(true);
+  }
+
+  public void turnToAngle(double angle) {
+    setTargetAngle(angle);
     setIsAutoRotating(true);
   }
   

@@ -21,6 +21,7 @@ import com.revrobotics.CANSparkBase.FaultID;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.SparkAbsoluteEncoder.Type;
+import com.revrobotics.SparkPIDController.AccelStrategy;
 
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -111,6 +112,8 @@ public class SwerveModule extends SubsystemBase {
 
     config.Feedback.SensorToMechanismRatio = 6.75;
 
+    config.ClosedLoopRamps.VoltageClosedLoopRampPeriod = 0.2;
+
 
     config.Voltage.PeakForwardVoltage = Constants.SwerveChassis.kPeakForwardFF;
     config.Voltage.PeakReverseVoltage = Constants.SwerveChassis.kPeakReverseFF;
@@ -168,7 +171,9 @@ public class SwerveModule extends SubsystemBase {
     _anglePID.setPositionPIDWrappingMaxInput(180.0);
     _anglePID.setSmartMotionAllowedClosedLoopError(10.0,0);
     _anglePID.setSmartMotionMinOutputVelocity(10, 0);
-    _angleMotor.setSmartCurrentLimit(80); 
+    _angleMotor.setSmartCurrentLimit(80);
+    
+    //_anglePID.setSmartMotionAccelStrategy(AccelStrategy.kTrapezoidal, 0);
     _angleMotor.setIdleMode(IdleMode.kBrake);
 
     _angleMotor.burnFlash();

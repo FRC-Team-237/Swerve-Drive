@@ -32,7 +32,10 @@ public class HangerSubsystem extends SubsystemBase {
 
   public void retract() {
     if(hangarEncoder.getPosition() >= -10) return;
-    hangarMotor.set(1.0);
+
+    double speed = hangarEncoder.getPosition() > -15 ? 0.2 : 1.0;
+
+    hangarMotor.set(speed);
     updateDashboardValues();
   }
 
@@ -42,7 +45,9 @@ public class HangerSubsystem extends SubsystemBase {
   }
 
   public void retractUnsafe() {
-    hangarMotor.set(1.0);
+    double speed = hangarEncoder.getPosition() > -15 ? 0.2 : 1.0;
+
+    hangarMotor.set(speed);
     updateDashboardValues();
   }
 
