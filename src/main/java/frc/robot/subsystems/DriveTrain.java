@@ -161,7 +161,7 @@ public class DriveTrain extends SubsystemBase {
   }
 
   public void setGyro(double angle) {
-    _imu.setGyroAngleY(angle);
+    _imu.setGyroAngle(IMUAxis.kYaw, angle);
   }
 
   public double getAngle() {
@@ -421,7 +421,8 @@ public class DriveTrain extends SubsystemBase {
   }
 
   public void turnToFieldElement(Constants.GameConstants.FieldElement element) {
-    setTargetAngle(NavUtilites.angleForFieldElement(element, _alliance));
+    Alliance alliance = DriverStation.getAlliance().orElse(Alliance.Blue); 
+    setTargetAngle(NavUtilites.angleForFieldElement(element,alliance ));
     setIsAutoRotating(true);
   }
 

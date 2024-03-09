@@ -302,7 +302,7 @@ public class RobotContainer {
     if(_buttonPanel.getRawButton(15)) { // Auto 4
       return makeCenterAutoCommand();
     } else if(_buttonPanel.getRawButton(17)) { // Auto 3
-      return new InstantCommand();
+      return makeSideAutoCommand(false);
     } else if(_buttonPanel.getRawButton(16)) { // Auto 2
       return makeSideAutoCommand(true);
     } else { // Auto 1
