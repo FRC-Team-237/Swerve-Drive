@@ -9,14 +9,17 @@ import frc.robot.Constants.GameConstants.FieldElement;
 import frc.robot.Utilities.CommandFactory;
 import frc.robot.Utilities.NavUtilites;
 import frc.robot.commands.IntakeCommand;
+import frc.robot.commands.JustShootAuto;
 import frc.robot.commands.MoveIntakeCommand;
 import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.HangerSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.IntakeSubsystem.Action;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -176,23 +179,40 @@ public class RobotContainer {
    
     // Auto Rotate 
     m_driverController.y()
-    .onTrue(new InstantCommand(() -> _drive.turnToFieldElement(FieldElement.kSource), _drive)) 
-    .onFalse(new InstantCommand(() -> _drive.setIsAutoRotating(false), _drive)); 
-  m_driverController.x()
-  .onTrue(new InstantCommand(() -> _drive.turnToFieldElement(FieldElement.kSpeaker), _drive)) 
-    .onFalse(new InstantCommand(() -> _drive.setIsAutoRotating(false), _drive)); 
+      .onTrue(new InstantCommand(() -> _drive.turnToFieldElement(FieldElement.kSource), _drive)) 
+      .onFalse(new InstantCommand(() -> _drive.setIsAutoRotating(false), _drive));
+
+    m_driverController.x()
+      .onTrue(new InstantCommand(() -> _drive.turnToFieldElement(FieldElement.kSpeaker), _drive)) 
+      .onFalse(new InstantCommand(() -> _drive.setIsAutoRotating(false), _drive)); 
+
     // button panel
-
-    // hanger retract
-
+    
     if (RobotBase.isReal()) {
+      // hanger retract
       new JoystickButton(_buttonPanel, 1)
-          .onTrue(new InstantCommand(_hanger::retract))
+          .onTrue(new InstantCommand(_hanger::retract)
+          .finallyDo(interrupted -> {
+            if(interrupted) _hanger.stop();
+          }))
           .onFalse(new InstantCommand(_hanger::stop));
 
+      new JoystickButton(_buttonPanel, 1)
+        .and(m_driverController.back())
+          .onTrue(new InstantCommand(_hanger::retractUnsafe))
+          .onFalse(new InstantCommand(_hanger::stop));
+          
       // hanger extend
       new JoystickButton(_buttonPanel, 2)
-          .onTrue(new InstantCommand(_hanger::extend))
+        .onTrue(new InstantCommand(_hanger::extend)
+          .finallyDo(interrupted -> {
+            if(interrupted) _hanger.stop();
+          }))
+        .onFalse(new InstantCommand(_hanger::stop));
+
+      new JoystickButton(_buttonPanel, 2)
+        .and(m_driverController.back())
+          .onTrue(new InstantCommand(_hanger::extendUnsafe))
           .onFalse(new InstantCommand(_hanger::stop));
 
       // amp shoot
@@ -284,8 +304,17 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
+    if(_buttonPanel.getRawButton(15)) { // Auto 4
+      return makeCenterAutoCommand();
+    } else if(_buttonPanel.getRawButton(17)) { // Auto 3
+      return new InstantCommand();
+    } else if(_buttonPanel.getRawButton(16)) { // Auto 2
+      return new InstantCommand();
+    } else { // Auto 1
+      return new JustShootAuto(_shooter, _drive);
+    }
+
     // An example command will be run in autonomous
-    return makeCenterAutoCommand();
   }
 
   public Command makeCenterAutoCommand()

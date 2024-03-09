@@ -21,15 +21,28 @@ public class HangerSubsystem extends SubsystemBase {
   public HangerSubsystem() {
     hangarMotor = new CANSparkMax(Constants.Mechanism.kHangerMotorId, MotorType.kBrushless);
     hangarEncoder = hangarMotor.getEncoder();
+    hangarEncoder.setPosition(0);
   }
 
   public void extend() {
-    hangarMotor.set(-0.50);
+    if(hangarEncoder.getPosition() < -330) return;
+    hangarMotor.set(-1.0);
     updateDashboardValues();
   }
 
   public void retract() {
-    hangarMotor.set(0.50);
+    if(hangarEncoder.getPosition() >= -10) return;
+    hangarMotor.set(1.0);
+    updateDashboardValues();
+  }
+
+  public void extendUnsafe() {
+    hangarMotor.set(-1.0);
+    updateDashboardValues();
+  }
+
+  public void retractUnsafe() {
+    hangarMotor.set(1.0);
     updateDashboardValues();
   }
 

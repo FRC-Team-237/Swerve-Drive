@@ -57,7 +57,7 @@ public static class SwerveChassis {
 
     public static double kMaxVelocity = 2.0;
     public static double kSuperEpicTurboMaxVelocity = 20.0; 
-    public static double kMaxRotationalVelocity = 0.3;
+    public static double kMaxRotationalVelocity = 0.6;
     public static double kMaxRotationsPerSec = kMaxVelocity/(2*Math.PI*kWheelRadius);
     public static double degreesPerRotation = 30.0;
     public static double degreesPerTick = 360.0/degreesPerRotation;  
@@ -134,12 +134,12 @@ public static class SwerveChassis {
       kAmp,
       kStage
     }
-    public static final double kBlueSourceAngle = -55; 
-    public static final double kRedSourceAngle = 55; 
+    public static final double kBlueSourceAngle = 180-55; 
+    public static final double kRedSourceAngle = 180+55;
     public static final double kBlueAmpAngle = 90; 
     public static final double kRedAmpAngle = -90;
     
-    public static final double kBlueStageAngle = -120; 
+    public static final double kBlueStageAngle = -120;
     public static final double kRedStageAngle = 120; 
     
   }
