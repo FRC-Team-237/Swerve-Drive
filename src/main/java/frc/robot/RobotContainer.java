@@ -26,6 +26,7 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.ParallelRaceGroup;
 import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
@@ -137,20 +138,7 @@ public class RobotContainer {
     // .whileTrue(new TestFollowCommand());
 
     m_driverController.rightTrigger(0.1)
-        .onTrue(new RunCommand(() -> {
-          _shooter.shoot();
-        }, _shooter)
-            .until(_shooter::atSpeed)
-            .withTimeout(2)
-            .andThen(() -> {
-              _shooter.feed();
-              _intake.setIntakeMotor(-0.75);
-            }, _shooter, _intake))
-        .onFalse(new InstantCommand(() -> {
-          _shooter.stopShoot();
-          _shooter.stopFeed();
-          _intake.stopIntakeMotor();
-        }, _shooter, _intake));
+        .whileTrue(makeShootCommand());
 
     m_driverController.rightBumper()
         .onTrue(new InstantCommand(_shooter::intake))
@@ -325,12 +313,13 @@ public class RobotContainer {
       .until(_shooter::atSpeed)
       .andThen(_shooter::feed)
       .andThen(new WaitCommand(0.15))
-      .andThen(new RunCommand(() -> _drive.drive(
-        1,
-        0,
-        0,
-        true
-      )).withTimeout(2))
+      .andThen(new RunCommand(() -> {
+        _drive.drive(
+          1, 
+          0, 
+          0, 
+          true);
+      }, _drive))
       .finallyDo(()-> {
         _shooter.stopShoot();
         _drive.drive(0, 0, 0, false);
@@ -381,5 +370,20 @@ public class RobotContainer {
         _shooter.stopIntake();
         _intake.stopIntakeMotor();
       }); 
+    }
+    public Command makeShootCommand(){
+      return new RunCommand(() -> {
+          _shooter.shoot();
+        }, _shooter)
+        .until(_shooter::atSpeed)
+        .withTimeout(2)
+        .andThen(new RunCommand(() -> {
+          _shooter.feed();
+          _intake.setIntakeMotor(-0.75);
+        }, _shooter, _intake))
+        .finallyDo(() -> {
+          _shooter.stopShoot();
+          _intake.stopIntakeMotor();
+        }); 
     }
 }
