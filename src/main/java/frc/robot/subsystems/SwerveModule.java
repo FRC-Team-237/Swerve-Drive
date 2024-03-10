@@ -167,7 +167,7 @@ public class SwerveModule extends SubsystemBase {
     _anglePID.setPositionPIDWrappingEnabled(true);
     _anglePID.setPositionPIDWrappingMinInput(-180.0);
     _anglePID.setPositionPIDWrappingMaxInput(180.0);
-    _angleMotor.setSmartCurrentLimit(40); 
+    _angleMotor.setSmartCurrentLimit(20); 
     _angleMotor.setIdleMode(IdleMode.kBrake);
 
     _angleMotor.burnFlash();
