@@ -39,7 +39,7 @@ public class ShooterSubsystem extends SubsystemBase {
   private double lowShooterD = 0.0;
   private double lowShooterFF = 0.0;
 
-  private double spitPower = 0.5;
+  private double spitPower = 0.3;
 
   public ShooterSubsystem() {
     lowMotor = new CANSparkMax(Constants.Mechanism.kShooterLowMotorId, MotorType.kBrushless);

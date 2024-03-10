@@ -110,6 +110,9 @@ public class SwerveModule extends SubsystemBase {
     config.Slot0.kS = 1.75;
     config.Slot0.kV = 0.68;
 
+    config.CurrentLimits.StatorCurrentLimit = 10;
+    config.CurrentLimits.StatorCurrentLimitEnable = true;
+
     config.Feedback.SensorToMechanismRatio = 6.75;
 
     config.ClosedLoopRamps.VoltageClosedLoopRampPeriod = 0.2;
@@ -118,8 +121,8 @@ public class SwerveModule extends SubsystemBase {
     config.Voltage.PeakForwardVoltage = Constants.SwerveChassis.kPeakForwardFF;
     config.Voltage.PeakReverseVoltage = Constants.SwerveChassis.kPeakReverseFF;
     
-    config.TorqueCurrent.PeakForwardTorqueCurrent = 800;
-    config.TorqueCurrent.PeakReverseTorqueCurrent = -800; 
+    config.TorqueCurrent.PeakForwardTorqueCurrent = 40;
+    config.TorqueCurrent.PeakReverseTorqueCurrent = -40; 
     _driveMotor.getConfigurator().apply(config);
     _driveMotor.setInverted(outputInverted);
     if(RobotBase.isSimulation()){
@@ -165,7 +168,7 @@ public class SwerveModule extends SubsystemBase {
     _anglePID.setI(0);
     _anglePID.setD(0.0);
     _anglePID.setFF(0.0008);
-    _anglePID.setOutputRange(-1, 1);
+    _anglePID.setOutputRange(-1.0, 1.0);
     _anglePID.setPositionPIDWrappingEnabled(true);
     _anglePID.setPositionPIDWrappingMinInput(-180.0);
     _anglePID.setPositionPIDWrappingMaxInput(180.0);

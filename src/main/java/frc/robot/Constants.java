@@ -56,7 +56,7 @@ public static class SwerveChassis {
     public static double kWheelRadius = Units.inchesToMeters(2.0);  
 
     public static double kMaxVelocity = 2.0;
-    public static double kSuperEpicTurboMaxVelocity = 20.0; 
+    public static double kSuperEpicTurboMaxVelocity = 5.0; 
     public static double kMaxRotationalVelocity = 0.6;
     public static double kMaxRotationsPerSec = kMaxVelocity/(2*Math.PI*kWheelRadius);
     public static double degreesPerRotation = 30.0;
