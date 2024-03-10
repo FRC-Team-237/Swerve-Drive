@@ -112,7 +112,9 @@ public class SwerveModule extends SubsystemBase {
 
     config.Feedback.SensorToMechanismRatio = 6.75;
 
-    config.ClosedLoopRamps.VoltageClosedLoopRampPeriod = 0.1; 
+    config.ClosedLoopRamps.VoltageClosedLoopRampPeriod = 0.2;
+
+
     config.Voltage.PeakForwardVoltage = Constants.SwerveChassis.kPeakForwardFF;
     config.Voltage.PeakReverseVoltage = Constants.SwerveChassis.kPeakReverseFF;
     

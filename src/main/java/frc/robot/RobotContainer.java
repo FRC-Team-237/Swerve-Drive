@@ -9,18 +9,22 @@ import frc.robot.Constants.GameConstants.FieldElement;
 import frc.robot.Utilities.CommandFactory;
 import frc.robot.Utilities.NavUtilites;
 import frc.robot.commands.IntakeCommand;
+import frc.robot.commands.JustShootAuto;
 import frc.robot.commands.MoveIntakeCommand;
 import frc.robot.subsystems.DriveTrain;
 import frc.robot.subsystems.HangerSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.IntakeSubsystem.Action;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
+import edu.wpi.first.wpilibj2.command.ParallelRaceGroup;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -176,23 +180,34 @@ public class RobotContainer {
    
     // Auto Rotate 
     m_driverController.y()
-    .onTrue(new InstantCommand(() -> _drive.turnToFieldElement(FieldElement.kSource), _drive)) 
-    .onFalse(new InstantCommand(() -> _drive.setIsAutoRotating(false), _drive)); 
-  m_driverController.x()
-  .onTrue(new InstantCommand(() -> _drive.turnToFieldElement(FieldElement.kSpeaker), _drive)) 
-    .onFalse(new InstantCommand(() -> _drive.setIsAutoRotating(false), _drive)); 
+      .onTrue(new InstantCommand(() -> _drive.turnToFieldElement(FieldElement.kSource), _drive)) 
+      .onFalse(new InstantCommand(() -> _drive.setIsAutoRotating(false), _drive));
+
+    m_driverController.x()
+      .onTrue(new InstantCommand(() -> _drive.turnToFieldElement(FieldElement.kSpeaker), _drive)) 
+      .onFalse(new InstantCommand(() -> _drive.setIsAutoRotating(false), _drive)); 
+
     // button panel
-
-    // hanger retract
-
+    
     if (RobotBase.isReal()) {
+      // hanger retract
       new JoystickButton(_buttonPanel, 1)
-          .onTrue(new InstantCommand(_hanger::retract))
-          .onFalse(new InstantCommand(_hanger::stop));
+          .whileTrue(new RunCommand(_hanger::retract)
+            .finallyDo(_hanger::stop));
 
+      new JoystickButton(_buttonPanel, 1)
+        .and(m_driverController.back())
+          .whileTrue(new RunCommand(_hanger::retractUnsafe))
+          .onFalse(new InstantCommand(_hanger::stop));
+          
       // hanger extend
       new JoystickButton(_buttonPanel, 2)
-          .onTrue(new InstantCommand(_hanger::extend))
+        .whileTrue(new RunCommand(_hanger::extend)
+            .finallyDo(_hanger::stop));
+
+      new JoystickButton(_buttonPanel, 2)
+        .and(m_driverController.back())
+          .whileTrue(new RunCommand(_hanger::extendUnsafe))
           .onFalse(new InstantCommand(_hanger::stop));
 
       // amp shoot
@@ -284,8 +299,42 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
+    if(_buttonPanel.getRawButton(15)) { // Auto 4
+      return makeCenterAutoCommand();
+    } else if(_buttonPanel.getRawButton(17)) { // Auto 3
+      return makeSideAutoCommand(false);
+    } else if(_buttonPanel.getRawButton(16)) { // Auto 2
+      return makeSideAutoCommand(true);
+    } else { // Auto 1
+      return new JustShootAuto(_shooter, _drive);
+    }
+
     // An example command will be run in autonomous
-    return makeCenterAutoCommand();
+  }
+
+  public Command makeSideAutoCommand(boolean isLeft) {
+    // set gyro to +/-60
+    // shoot
+    // drive off the speaker
+
+    double angle = isLeft ? 60 : -60;
+
+    _drive.setGyro(angle);
+
+    return new RunCommand(_shooter::shoot, _shooter)
+      .until(_shooter::atSpeed)
+      .andThen(_shooter::feed)
+      .andThen(new WaitCommand(0.15))
+      .andThen(new RunCommand(() -> _drive.drive(
+        1,
+        0,
+        0,
+        true
+      )).withTimeout(2))
+      .finallyDo(()-> {
+        _shooter.stopShoot();
+        _drive.drive(0, 0, 0, false);
+      });
   }
 
   public Command makeCenterAutoCommand()
@@ -301,7 +350,7 @@ public class RobotContainer {
       .andThen(_shooter::stopShoot)
       .andThen(_shooter::stopFeed)
       .andThen(new WaitCommand(0.15))
-      .andThen(new ParallelCommandGroup(
+      .andThen(new ParallelRaceGroup(
           new RunCommand(() -> _intake.setIntakeMotor(1.0), _intake)
               .until(_intake::hasGamePiece),
 
@@ -311,10 +360,10 @@ public class RobotContainer {
               0,
               true),
               _drive)
-              .withTimeout(1.5)))
-      .withTimeout(5)
-      .andThen(_drive::stopMotors, _drive)
-      .andThen(_intake::stopIntakeMotor)
+              .withTimeout(2.5)))
+      .withTimeout(2.5)
+      .andThen(() -> {_drive.drive(0, 0, 0, fieldCentric);})
+      //.andThen(_intake::stopIntakeMotor)
       .andThen(() -> _intake.setPosition(Constants.IntakeConstants.kRetractedPos))
       .andThen(new ParallelCommandGroup(
           new RunCommand(() -> _drive.drive(
