@@ -110,7 +110,7 @@ public class SwerveModule extends SubsystemBase {
     config.Slot0.kS = 1.75;
     config.Slot0.kV = 0.68;
 
-    config.CurrentLimits.StatorCurrentLimit = 10;
+    config.CurrentLimits.StatorCurrentLimit = 40;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
 
     config.Feedback.SensorToMechanismRatio = 6.75;
