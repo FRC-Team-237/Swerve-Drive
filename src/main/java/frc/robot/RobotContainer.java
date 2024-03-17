@@ -76,7 +76,7 @@ public class RobotContainer {
     m_chooser.addOption("Left One Note", makeSideAutoCommand(true));
     m_chooser.addOption("Right One Note", makeSideAutoCommand(false));
     m_chooser.addOption("Center Two Note", makeCenterAutoCommand());
-    m_chooser.addOption("Center Three Note", make3NoteAutoCommand());
+    m_chooser.addOption("Center Three Note", make3NoteAutoCommand(StartingPosition.kCenter));
     configureBindings();
 
     _drive.setDefaultCommand((new RunCommand(() -> {
