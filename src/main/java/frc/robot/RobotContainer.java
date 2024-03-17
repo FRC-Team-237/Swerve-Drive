@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -52,12 +53,17 @@ public class RobotContainer {
   private final HangerSubsystem _hanger = new HangerSubsystem();
   private boolean fieldCentric = true;
   private final ShooterSubsystem _shooter = new ShooterSubsystem();
-
+  private SendableChooser<Command> m_chooser = new SendableChooser<>(); 
   public enum CommandType {
     kShoot,
     kPickup,
     kLoad,
     kTarget
+  }
+  public enum StartingPosition {
+    kCenter,
+    kLeft,
+    kRight
   }
 
   /**
@@ -66,6 +72,11 @@ public class RobotContainer {
   public RobotContainer() {
     // Configure the trigger bindings
     SmartDashboard.putString("Path to Test", "Test Path");
+    m_chooser.setDefaultOption("Only Shoot", makeShootCommand());
+    m_chooser.addOption("Left One Note", makeSideAutoCommand(true));
+    m_chooser.addOption("Right One Note", makeSideAutoCommand(false));
+    m_chooser.addOption("Center Two Note", makeCenterAutoCommand());
+    m_chooser.addOption("Center Three Note", make3NoteAutoCommand());
     configureBindings();
 
     _drive.setDefaultCommand((new RunCommand(() -> {
@@ -385,5 +396,45 @@ public class RobotContainer {
           _shooter.stopShoot();
           _intake.stopIntakeMotor();
         }); 
+    }
+    public Command make3NoteAutoCommand(StartingPosition startingPosition)
+    {
+
+      String secondNotePath = ""; 
+      switch (startingPosition) {
+        case kCenter:
+          secondNotePath = "center far note"; 
+        break; 
+        case kLeft:
+          secondNotePath = "left far note"; 
+        break; 
+        case kRight:
+          secondNotePath = "right far note"; 
+        break; 
+      }
+      return makeShootCommand().andThen(
+        new ParallelRaceGroup(
+          new RunCommand(() -> _intake.setIntakeMotor(1.0), _intake)
+              .until(_intake::hasGamePiece),
+
+          new RunCommand(() -> _drive.drive(
+              1,
+              0,
+              0,
+              true),
+              _drive)
+              .withTimeout(2.5))
+        )
+        .andThen(
+          makeShootCommand()
+        )
+        .andThen(
+          new ParallelCommandGroup(
+            new RunCommand(() -> _intake.setIntakeMotor(1.0), _intake)
+              .until(_intake::hasGamePiece),
+            NavUtilites.makePath(secondNotePath, _drive) 
+          )
+        );
+      
     }
 }

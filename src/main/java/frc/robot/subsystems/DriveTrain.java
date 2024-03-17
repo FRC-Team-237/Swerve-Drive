@@ -403,7 +403,7 @@ public class DriveTrain extends SubsystemBase {
     }
   }
   public boolean flipPath(){
-    return false; 
+    return DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Blue ? false : true; 
   }
   public SwerveModuleState[] getTargetStates(){
     SwerveModuleState[] swerveModuleStates = new SwerveModuleState[_swerveModules.length];

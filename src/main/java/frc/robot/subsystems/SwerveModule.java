@@ -110,8 +110,14 @@ public class SwerveModule extends SubsystemBase {
     config.Slot0.kS = 1.75;
     config.Slot0.kV = 0.68;
 
-    config.CurrentLimits.StatorCurrentLimit = 40;
+    config.CurrentLimits.StatorCurrentLimit = 100;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
+    // This will hopefully give ues better battery voltage management 
+    // While still affording times of high current draw momentarially. 
+    config.CurrentLimits.SupplyCurrentLimit = 50; 
+    config.CurrentLimits.SupplyCurrentThreshold = 100; 
+    config.CurrentLimits.SupplyTimeThreshold = 0.2; 
+    config.CurrentLimits.SupplyCurrentLimitEnable = true; 
 
     config.Feedback.SensorToMechanismRatio = 6.75;
 
@@ -121,8 +127,6 @@ public class SwerveModule extends SubsystemBase {
     config.Voltage.PeakForwardVoltage = Constants.SwerveChassis.kPeakForwardFF;
     config.Voltage.PeakReverseVoltage = Constants.SwerveChassis.kPeakReverseFF;
     
-    config.TorqueCurrent.PeakForwardTorqueCurrent = 40;
-    config.TorqueCurrent.PeakReverseTorqueCurrent = -40; 
     _driveMotor.getConfigurator().apply(config);
     _driveMotor.setInverted(outputInverted);
     if(RobotBase.isSimulation()){
