@@ -4,10 +4,6 @@
 
 package frc.robot.subsystems;
 
-import java.util.Optional;
-
-import javax.swing.text.html.parser.Element;
-
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.util.PathPlannerLogging;
 
@@ -20,25 +16,19 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructArrayPublisher;
 import edu.wpi.first.networktables.StructPublisher;
-import edu.wpi.first.util.struct.Struct;
 import edu.wpi.first.wpilibj.ADIS16470_IMU;
+import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.simulation.ADIS16470_IMUSim;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.simulation.ADIS16470_IMUSim;
-
 import frc.robot.Constants;
 import frc.robot.Constants.SwerveChassis;
 import frc.robot.Utilities.NavUtilites;
@@ -60,7 +50,6 @@ public class DriveTrain extends SubsystemBase {
   private StructPublisher<Pose2d> _targetPub; 
   private StructPublisher<ChassisSpeeds> _speedPub; 
   private double _lastTime;
-  private Alliance _alliance; 
 
   public boolean isAutoRotating = false;
   private double targetAngle = 0;
@@ -142,7 +131,6 @@ public class DriveTrain extends SubsystemBase {
     _speedPub = NetworkTableInstance.getDefault().getStructTopic("Chassis Speeds", ChassisSpeeds.struct).publish();
     _lastTime = Timer.getFPGATimestamp();  
     _front = RobotSide.kIntake; 
-    _alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
     
   }
   private SwerveModulePosition[] getEstimatedPosition() {
@@ -397,10 +385,8 @@ public class DriveTrain extends SubsystemBase {
     }
   }
   public void stopMotors(){
-    for (SwerveModule mod: _swerveModules)
-    {
-      drive(0, 0, 0, false);
-    }
+    
+    drive(0, 0, 0, false);
   }
   public boolean flipPath(){
     return DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Blue ? false : true; 

@@ -4,15 +4,20 @@
 
 package frc.robot.subsystems;
 
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.RelativeEncoder;
-import com.revrobotics.SparkPIDController;
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.SparkPIDController;
 import com.revrobotics.SparkPIDController.AccelStrategy;
 
+import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 
@@ -28,6 +33,9 @@ public class ShooterSubsystem extends SubsystemBase {
   private RelativeEncoder lowMotorEncoder;
   private RelativeEncoder highMotorEncoder;
 
+  private PWMVictorSPX m_floorIntakeMotor;
+  private DigitalInput m_gamePieceSensor;
+
   private double shooterRPM = 0.0;
 
   private double highShooterP = 0.0;
@@ -41,10 +49,22 @@ public class ShooterSubsystem extends SubsystemBase {
 
   private double spitPower = 0.3;
 
+  public enum ShootAction {
+    AMP,
+    SPEAKER,
+    STOP,
+    INTAKE_SOURCE,
+    INTAKE_FLOOR,
+    EJECT_FLOOR
+  }
+
   public ShooterSubsystem() {
     lowMotor = new CANSparkMax(Constants.Mechanism.kShooterLowMotorId, MotorType.kBrushless);
     highMotor = new CANSparkMax(Constants.Mechanism.kShooterHighMotorId, MotorType.kBrushless);
     feederMotor = new CANSparkMax(Constants.Mechanism.kShooterFeederMotorId, MotorType.kBrushless);
+
+    m_gamePieceSensor = new DigitalInput(Constants.IntakeConstants.kGamePieceSensorPort);
+    m_floorIntakeMotor = new PWMVictorSPX(Constants.IntakeConstants.kIntakeMotorId);
 
     lowMotor.setIdleMode(IdleMode.kCoast);
     highMotor.setIdleMode(IdleMode.kCoast);
@@ -71,7 +91,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
     updateDashboardValues();
   }
-  
+
   private void updateDashboardValues() {
     highShooterP = SmartDashboard.getNumber("Shooter/highP", 0.0);
     highShooterI = SmartDashboard.getNumber("Shooter/highI", 0.0);
@@ -99,17 +119,27 @@ public class ShooterSubsystem extends SubsystemBase {
     outputShooter(spitPower);
   }
 
-
   public void shoot() {
     outputShooter(1);
   }
-  
+
   public void stopShoot() {
     outputShooter(0);
   }
 
+  public void floorIntake() {
+    m_floorIntakeMotor.set(1.0);
+  }
 
-  public void intake() {
+  public void floorEject() {
+    m_floorIntakeMotor.set(-1.0); 
+  }
+
+  public void stopFloorIntake() {
+    m_floorIntakeMotor.stopMotor();
+  }
+
+  public void sourceIntake() {
     outputShooter(-Constants.Mechanism.kIntakeMultiplier);
     outputFeeder(-Constants.Mechanism.kShooterFeedMultiplier * Constants.Mechanism.kIntakeMultiplier);
   }
@@ -117,8 +147,8 @@ public class ShooterSubsystem extends SubsystemBase {
   public void stopIntake() {
     outputShooter(0);
     outputFeeder(0);
+    stopFloorIntake();
   }
-
 
   public void feed() {
     outputFeeder(0.5);
@@ -128,10 +158,9 @@ public class ShooterSubsystem extends SubsystemBase {
     outputFeeder(0);
   }
 
-
   public void outputShooter(double speed) {
     updateDashboardValues();
-    if(Math.abs(speed) <= 0.01) {
+    if (Math.abs(speed) <= 0.01) {
       lowMotor.stopMotor();
       highMotor.stopMotor();
       return;
@@ -144,16 +173,76 @@ public class ShooterSubsystem extends SubsystemBase {
     updateDashboardValues();
     feederMotor.set(-speed);
   }
-  public boolean atSpeed(){
-    if (highMotorEncoder.getVelocity()>shooterRPM-350) {
+
+  public boolean atSpeed() {
+    if (highMotorEncoder.getVelocity() > shooterRPM - 350) {
       return true;
     } else {
       return false;
     }
-  } 
+  }
+
+  public Command getCommand(ShootAction action) {
+    switch (action) {
+      case AMP:
+        return new RunCommand(() -> {
+          this.shoot();
+          this.spit();
+          this.floorIntake();
+        }, this)
+            .finallyDo(() -> {
+              stopShoot();
+              stopFeed();
+              stopFloorIntake();
+            }).withName("AMP_SHOT");
+      case SPEAKER:
+        return new RunCommand(this::shoot, this)
+            .until(this::atSpeed)
+            .andThen(this::feed)
+            .andThen(this::floorIntake)
+            .finallyDo(() -> {
+              stopShoot();
+              stopFeed();
+              stopFloorIntake();
+            }).withName("SPEAKER_SHOT");
+      case STOP:
+        return new InstantCommand(() -> {
+          stopShoot();
+          stopFeed();
+          stopFloorIntake();
+        }, this).withName("STOP");
+      case INTAKE_FLOOR: 
+        return new RunCommand(this::floorIntake, this)
+        .until(this::hasGamePiece)
+        .finallyDo(() -> {
+          stopFloorIntake();
+        }).withName("INTAKE_FLOOR");
+      case INTAKE_SOURCE:
+        return new RunCommand(this::sourceIntake, this)
+        .until(this::hasGamePiece)
+        .finallyDo(() -> {
+          stopShoot();
+          stopFeed();
+          stopFloorIntake();
+        }).withName("INTAKE_SOURCE");
+      case EJECT_FLOOR:
+        return new RunCommand(this::floorEject, this)
+        .finallyDo(this::stopFloorIntake).withName("EJECT_FLOOR");
+      default: return new InstantCommand(); 
+    }
+  }
+
   @Override
   public void periodic() {
     log();
+  }
+
+  public boolean hasGamePiece(){
+    return m_gamePieceSensor.get(); 
+  }
+
+  public boolean doesNotHaveGamepiece() {
+    return !m_gamePieceSensor.get(); 
   }
 
   private void log() {

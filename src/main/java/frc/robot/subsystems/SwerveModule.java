@@ -11,17 +11,16 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.CANSparkBase;
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.REVPhysicsSim;
-import com.revrobotics.RelativeEncoder;
-import com.revrobotics.CANSparkLowLevel;
-import com.revrobotics.SparkPIDController;
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.FaultID;
 import com.revrobotics.CANSparkBase.IdleMode;
+import com.revrobotics.CANSparkLowLevel;
 import com.revrobotics.CANSparkLowLevel.MotorType;
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.REVPhysicsSim;
+import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkAbsoluteEncoder.Type;
-import com.revrobotics.SparkPIDController.AccelStrategy;
+import com.revrobotics.SparkPIDController;
 
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -388,9 +387,5 @@ public class SwerveModule extends SubsystemBase {
     final double wheelRotationsPerMeter = 1.0 / circumfrence; 
     return wheelRotationsPerMeter * meters; 
   }
-  private double rotationToMeters(double rotations) {
-     /* Get circumference of wheel */
-     final double circumference = Constants.SwerveChassis.kWheelRadius * 2 * Math.PI;
-     return rotations * circumference;
-  }
+  
 }
