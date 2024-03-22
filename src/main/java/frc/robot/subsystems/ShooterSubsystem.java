@@ -198,8 +198,8 @@ public class ShooterSubsystem extends SubsystemBase {
       case SPEAKER:
         return new RunCommand(this::shoot, this)
             .until(this::atSpeed)
-            .andThen(this::feed)
-            .andThen(this::floorIntake)
+            .andThen(this::feed,this)
+            .andThen(this::floorIntake,this)
             .finallyDo(() -> {
               stopShoot();
               stopFeed();
