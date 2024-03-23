@@ -143,22 +143,16 @@ public class RobotContainer {
     // m_driverController.povUp()
     // .whileTrue(new TestFollowCommand());
 
-    m_driverController.leftBumper()
-      .whileTrue(new InstantCommand(() -> this.maxVelocity = Constants.SwerveChassis.kSuperEpicTurboMaxVelocity))
-      .whileFalse(new InstantCommand(() -> this.maxVelocity = Constants.SwerveChassis.kMaxVelocity));
-
-    m_driverController.start()
-      .onTrue(new InstantCommand(() -> fieldCentric = !fieldCentric));
-
-    m_driverController.rightTrigger(0.1)
-        .whileTrue(_shooter.getCommand(ShootAction.SPEAKER));
-
-    m_driverController.rightBumper()
-        .whileTrue(_shooter.getCommand(ShootAction.INTAKE_SOURCE)); 
+    Trigger speakerTrigger = m_driverController.rightTrigger(0.1); 
+    speakerTrigger.whileTrue(_shooter.getCommand(ShootAction.SPEAKER));
+    
+    
+    Trigger intakeTrigger  = m_driverController.rightBumper(); 
+    intakeTrigger.whileTrue(_shooter.getCommand(ShootAction.INTAKE_SOURCE)); 
     // m_driverController.rightBumper()
     // .onTrue(new InstantCommand(_shooter::intake))
     // .onFalse(new InstantCommand(_shooter::stopIntake));
-
+    
     m_driverController.leftTrigger(0.1)
         .whileTrue(_shooter.getCommand(ShootAction.AMP)); 
     m_driverController.a()
@@ -182,14 +176,14 @@ public class RobotContainer {
     if (RobotBase.isReal()) {
       // hanger retract
       new JoystickButton(_buttonPanel, 1)
-          .whileTrue(new RunCommand(_hanger::retract)
+          .whileTrue(new RunCommand(_hanger::retract, _hanger)
             .finallyDo(_hanger::stop)
             .withName("Hanger Retract"));
 
       new JoystickButton(_buttonPanel, 1)
         .and(m_driverController.back())
-          .whileTrue(new RunCommand(_hanger::retractUnsafe))
-          .onFalse(new InstantCommand(_hanger::stop));
+          .whileTrue(new RunCommand(_hanger::retractUnsafe,_hanger))
+          .onFalse(new InstantCommand(_hanger::stop,_hanger));
           
       // hanger extend
       new JoystickButton(_buttonPanel, 2)
@@ -199,8 +193,8 @@ public class RobotContainer {
 
       new JoystickButton(_buttonPanel, 2)
         .and(m_driverController.back())
-          .whileTrue(new RunCommand(_hanger::extendUnsafe))
-          .onFalse(new InstantCommand(_hanger::stop));
+          .whileTrue(new RunCommand(_hanger::extendUnsafe,_hanger))
+          .onFalse(new InstantCommand(_hanger::stop,_hanger));
 
       // amp shoot
       new JoystickButton(_buttonPanel, 3)
@@ -255,35 +249,34 @@ public class RobotContainer {
 
     double angle = isLeft ? 60 : -60;
 
-    return new InstantCommand(() -> {
-      _drive.setGyro(angle);
-    }).andThen(
-      new RunCommand(_shooter::shoot, _shooter)
-        .until(_shooter::atSpeed)
-        .andThen(_shooter::feed)
-        .andThen(new WaitCommand(0.15))
-        .andThen(new RunCommand(() -> {
-          _drive.drive(
-            1, 
-            0, 
-            0, 
-            true);
-        }, _drive))
-        .finallyDo(()-> {
-          _shooter.stopShoot();
-          _drive.drive(0, 0, 0, false);
-        })
-    );
+    //_drive.setGyro(angle);
+
+    return new RunCommand(_shooter::shoot, _shooter)
+      .until(_shooter::atSpeed)
+      .andThen(new InstantCommand(()-> _drive.setGyro(angle),_drive))
+      .andThen(_shooter::feed,_shooter)
+      .andThen(new WaitCommand(0.15))
+      .andThen(new RunCommand(() -> {
+        _drive.drive(
+          1, 
+          0, 
+          0, 
+          true);
+      }, _drive))
+      .finallyDo(()-> {
+        _shooter.stopShoot();
+        _drive.drive(0, 0, 0, false);
+      });
   }
 
   public Command makeCenterAutoCommand()
     {
       return new RunCommand(_shooter::shoot, _shooter)
       .until(_shooter::atSpeed)
-      .andThen(_shooter::feed)
+      .andThen(_shooter::feed,_shooter)
       .andThen(new WaitCommand(0.25))
-      .andThen(_shooter::stopShoot)
-      .andThen(_shooter::stopFeed)
+      .andThen(_shooter::stopShoot,_shooter)
+      .andThen(_shooter::stopFeed,_shooter)
       .andThen(new WaitCommand(0.15))
       .andThen(new ParallelRaceGroup(
           _shooter.getCommand(ShootAction.INTAKE_FLOOR),
@@ -304,7 +297,7 @@ public class RobotContainer {
               true),
               _drive)
               .withTimeout(1.0)))
-      .andThen(_drive::stopMotors)
+      .andThen(_drive::stopMotors,_drive)
       .andThen(new RunCommand(_shooter::shoot, _shooter)
           .until(_shooter::atSpeed))  
       .finallyDo(() -> {
