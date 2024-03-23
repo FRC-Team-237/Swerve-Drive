@@ -140,15 +140,16 @@ public class RobotContainer {
     // m_driverController.povUp()
     // .whileTrue(new TestFollowCommand());
 
-    m_driverController.rightTrigger(0.1)
-        .whileTrue(_shooter.getCommand(ShootAction.SPEAKER));
-
-    m_driverController.rightBumper()
-        .whileTrue(_shooter.getCommand(ShootAction.INTAKE_SOURCE)); 
+    Trigger speakerTrigger = m_driverController.rightTrigger(0.1); 
+    speakerTrigger.whileTrue(_shooter.getCommand(ShootAction.SPEAKER));
+    
+    
+    Trigger intakeTrigger  = m_driverController.rightBumper(); 
+    intakeTrigger.whileTrue(_shooter.getCommand(ShootAction.INTAKE_SOURCE)); 
     // m_driverController.rightBumper()
     // .onTrue(new InstantCommand(_shooter::intake))
     // .onFalse(new InstantCommand(_shooter::stopIntake));
-
+    
     m_driverController.leftTrigger(0.1)
         .whileTrue(_shooter.getCommand(ShootAction.AMP)); 
     m_driverController.a()
