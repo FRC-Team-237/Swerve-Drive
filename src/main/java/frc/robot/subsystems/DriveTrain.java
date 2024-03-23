@@ -80,6 +80,8 @@ public class DriveTrain extends SubsystemBase {
       new SwerveModule(ModPosition.BACK_RIGHT)
     };
 
+    this.setGyro(0);
+
     SmartDashboard.putNumber("Drive/AutoRotate/P", 0.002);
     SmartDashboard.putNumber("Drive/AutoRotate/I", 0.0);
     SmartDashboard.putNumber("Drive/AutoRotate/D", 0.0001);
@@ -286,10 +288,10 @@ public class DriveTrain extends SubsystemBase {
               omega_rad_per_s));
     }
     // Evaluate if auto turning is done. If so turn it off. 
-    if (isNear(getTargetAngle()) || Math.abs(omega_rad_per_s) > 0.0)
-    {
-      setIsAutoRotating(false);
-    }
+    // if (isNear(getTargetAngle()) || Math.abs(omega_rad_per_s) > 0.0)
+    // {
+    //   setIsAutoRotating(false);
+    // }
     SmartDashboard.putBoolean("Drive/Field Centric", fieldcentric);
     SmartDashboard.putNumber("Drive/Angle", getAngle());
     SmartDashboard.putNumber("Drive/Rotation", new Rotation2d(_imu.getAngle(IMUAxis.kYaw)).getDegrees());

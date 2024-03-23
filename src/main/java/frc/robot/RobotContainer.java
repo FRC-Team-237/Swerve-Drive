@@ -44,6 +44,7 @@ public class RobotContainer {
   private final Joystick _buttonPanel = new Joystick(OperatorConstants.kButtonPanelPort);
   private final HangerSubsystem _hanger = new HangerSubsystem();
   private boolean fieldCentric = true;
+  private double maxVelocity = Constants.SwerveChassis.kMaxVelocity;
   private final ShooterSubsystem _shooter = new ShooterSubsystem();
   private SendableChooser<Command> m_chooser = new SendableChooser<>(); 
   public enum CommandType {
@@ -71,6 +72,8 @@ public class RobotContainer {
     m_chooser.addOption("Center Three Note", make3NoteAutoCommand(StartingPosition.kCenter));
     configureBindings();
 
+    _drive.setGyro(0);
+
     _drive.setDefaultCommand((new RunCommand(() -> {
 
       double velocityX = (Math.abs(m_driverController.getLeftY()) > 0.1 ? -m_driverController.getLeftY() : 0);
@@ -94,9 +97,9 @@ public class RobotContainer {
 
       // SmartDashboard.putNumber("Rotation speed", rot);
 
-      double maxVelocity = m_driverController.leftBumper().getAsBoolean()
-          ? Constants.SwerveChassis.kSuperEpicTurboMaxVelocity
-          : Constants.SwerveChassis.kMaxVelocity;
+      // double maxVelocity = m_driverController.leftBumper().getAsBoolean()
+      //     ? Constants.SwerveChassis.kSuperEpicTurboMaxVelocity
+      //     : Constants.SwerveChassis.kMaxVelocity;
 
       SmartDashboard.putNumber("Drive/Max Velocity", maxVelocity);
 
@@ -140,6 +143,13 @@ public class RobotContainer {
     // m_driverController.povUp()
     // .whileTrue(new TestFollowCommand());
 
+    m_driverController.leftBumper()
+      .whileTrue(new InstantCommand(() -> this.maxVelocity = Constants.SwerveChassis.kSuperEpicTurboMaxVelocity))
+      .whileFalse(new InstantCommand(() -> this.maxVelocity = Constants.SwerveChassis.kMaxVelocity));
+
+    m_driverController.start()
+      .onTrue(new InstantCommand(() -> fieldCentric = !fieldCentric));
+
     m_driverController.rightTrigger(0.1)
         .whileTrue(_shooter.getCommand(ShootAction.SPEAKER));
 
@@ -160,7 +170,7 @@ public class RobotContainer {
    
     // Auto Rotate 
     m_driverController.y()
-      .onTrue(new InstantCommand(() -> _drive.turnToFieldElement(FieldElement.kSource), _drive)) 
+      .onTrue(new InstantCommand(() -> _drive.turnToFieldElement(FieldElement.kSource), _drive))
       .onFalse(new InstantCommand(() -> _drive.setIsAutoRotating(false), _drive));
 
     m_driverController.x()
@@ -173,7 +183,8 @@ public class RobotContainer {
       // hanger retract
       new JoystickButton(_buttonPanel, 1)
           .whileTrue(new RunCommand(_hanger::retract)
-            .finallyDo(_hanger::stop));
+            .finallyDo(_hanger::stop)
+            .withName("Hanger Retract"));
 
       new JoystickButton(_buttonPanel, 1)
         .and(m_driverController.back())
@@ -183,7 +194,8 @@ public class RobotContainer {
       // hanger extend
       new JoystickButton(_buttonPanel, 2)
         .whileTrue(new RunCommand(_hanger::extend)
-            .finallyDo(_hanger::stop));
+            .finallyDo(_hanger::stop)
+            .withName("Hanger Retract"));
 
       new JoystickButton(_buttonPanel, 2)
         .and(m_driverController.back())
@@ -196,9 +208,14 @@ public class RobotContainer {
       // Eject Note     
       new JoystickButton(_buttonPanel, 4)
           .whileTrue(_shooter.getCommand(ShootAction.EJECT_FLOOR));
+      new JoystickButton(_buttonPanel, 9)
+        .whileTrue(_shooter.getCommand(ShootAction.INTAKE_FLOOR));
       // Intake Note 
       new JoystickButton(_buttonPanel, 6)
           .whileTrue(_shooter.getCommand(ShootAction.INTAKE_SOURCE)); 
+      
+      new JoystickButton(_buttonPanel, 7)
+        .whileTrue(_shooter.getCommand(ShootAction.FEED));
 
       new JoystickButton(_buttonPanel, 8)
           .whileTrue(_shooter.getCommand(ShootAction.SPEAKER)); 
@@ -238,23 +255,25 @@ public class RobotContainer {
 
     double angle = isLeft ? 60 : -60;
 
-    _drive.setGyro(angle);
-
-    return new RunCommand(_shooter::shoot, _shooter)
-      .until(_shooter::atSpeed)
-      .andThen(_shooter::feed)
-      .andThen(new WaitCommand(0.15))
-      .andThen(new RunCommand(() -> {
-        _drive.drive(
-          1, 
-          0, 
-          0, 
-          true);
-      }, _drive))
-      .finallyDo(()-> {
-        _shooter.stopShoot();
-        _drive.drive(0, 0, 0, false);
-      });
+    return new InstantCommand(() -> {
+      _drive.setGyro(angle);
+    }).andThen(
+      new RunCommand(_shooter::shoot, _shooter)
+        .until(_shooter::atSpeed)
+        .andThen(_shooter::feed)
+        .andThen(new WaitCommand(0.15))
+        .andThen(new RunCommand(() -> {
+          _drive.drive(
+            1, 
+            0, 
+            0, 
+            true);
+        }, _drive))
+        .finallyDo(()-> {
+          _shooter.stopShoot();
+          _drive.drive(0, 0, 0, false);
+        })
+    );
   }
 
   public Command makeCenterAutoCommand()

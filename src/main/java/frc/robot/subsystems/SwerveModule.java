@@ -109,13 +109,13 @@ public class SwerveModule extends SubsystemBase {
     config.Slot0.kS = 1.75;
     config.Slot0.kV = 0.68;
 
-    config.CurrentLimits.StatorCurrentLimit = 100;
+    config.CurrentLimits.StatorCurrentLimit = 40;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
     // This will hopefully give ues better battery voltage management 
     // While still affording times of high current draw momentarially. 
     config.CurrentLimits.SupplyCurrentLimit = 50; 
-    config.CurrentLimits.SupplyCurrentThreshold = 100; 
-    config.CurrentLimits.SupplyTimeThreshold = 0.2; 
+    config.CurrentLimits.SupplyCurrentThreshold = 75; 
+    
     config.CurrentLimits.SupplyCurrentLimitEnable = true; 
 
     config.Feedback.SensorToMechanismRatio = 6.75;
@@ -143,7 +143,7 @@ public class SwerveModule extends SubsystemBase {
     _angleMotor.restoreFactoryDefaults();
     if (_angleMotor.getStickyFault(FaultID.kSensorFault) || _angleMotor.getStickyFault(FaultID.kSensorFault))
     {
-      System.out.println("Sensor fault Detected: falling back to NEO integratedEncoder.");
+      // System.out.println("Sensor fault Detected: falling back to NEO integratedEncoder.");
 
     }
     else {
@@ -335,7 +335,7 @@ public class SwerveModule extends SubsystemBase {
     var talonSignal = _driveMotor.getVelocity();
     if (_angleMotor.getStickyFault(FaultID.kSensorFault) || _angleMotor.getFault(FaultID.kSensorFault) && _absAngleEncoder != null)
     {
-      System.out.println("Sensor fault Detected: falling back to NEO integratedEncoder.");
+      // System.out.println("Sensor fault Detected: falling back to NEO integratedEncoder.");
       _absAngleEncoder = null; 
       _anglePID.setFeedbackDevice(_integratedNeoEncoder); 
     }

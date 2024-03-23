@@ -30,7 +30,7 @@ public final class Constants {
   }; 
   public static class OperatorConstants {
     public static final int kXboxControllerPort = 5;
-    public static final int kLogitechControllerPort = 0;
+    public static final int kLogitechControllerPort = 1;
     public static final int kButtonPanelPort = 2;
   }
 public static class IntakeConstants {

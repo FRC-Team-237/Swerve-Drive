@@ -55,7 +55,8 @@ public class ShooterSubsystem extends SubsystemBase {
     STOP,
     INTAKE_SOURCE,
     INTAKE_FLOOR,
-    EJECT_FLOOR
+    EJECT_FLOOR,
+    FEED
   }
 
   public ShooterSubsystem() {
@@ -64,7 +65,7 @@ public class ShooterSubsystem extends SubsystemBase {
     feederMotor = new CANSparkMax(Constants.Mechanism.kShooterFeederMotorId, MotorType.kBrushless);
 
     m_gamePieceSensor = new DigitalInput(Constants.IntakeConstants.kGamePieceSensorPort);
-    m_floorIntakeMotor = new PWMVictorSPX(Constants.IntakeConstants.kIntakeMotorId);
+    m_floorIntakeMotor = new PWMVictorSPX(1);
 
     lowMotor.setIdleMode(IdleMode.kCoast);
     highMotor.setIdleMode(IdleMode.kCoast);
@@ -198,8 +199,11 @@ public class ShooterSubsystem extends SubsystemBase {
       case SPEAKER:
         return new RunCommand(this::shoot, this)
             .until(this::atSpeed)
-            .andThen(this::feed)
-            .andThen(this::floorIntake)
+            .withTimeout(1.5)
+            .andThen(new RunCommand(() -> {
+              this.feed();
+              this.floorIntake();
+            }, this))
             .finallyDo(() -> {
               stopShoot();
               stopFeed();
@@ -228,6 +232,15 @@ public class ShooterSubsystem extends SubsystemBase {
       case EJECT_FLOOR:
         return new RunCommand(this::floorEject, this)
         .finallyDo(this::stopFloorIntake).withName("EJECT_FLOOR");
+      case FEED:
+        return new RunCommand(() -> {
+          m_floorIntakeMotor.set(1);
+          feederMotor.set(-1);
+        }, this)
+        .finallyDo(() -> {
+          m_floorIntakeMotor.set(0);
+          feederMotor.set(0);
+        });
       default: return new InstantCommand(); 
     }
   }
@@ -238,7 +251,7 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public boolean hasGamePiece(){
-    return m_gamePieceSensor.get(); 
+    return m_gamePieceSensor.get();
   }
 
   public boolean doesNotHaveGamepiece() {
