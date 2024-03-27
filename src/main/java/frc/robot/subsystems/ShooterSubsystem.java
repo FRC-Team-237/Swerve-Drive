@@ -199,8 +199,11 @@ public class ShooterSubsystem extends SubsystemBase {
       case SPEAKER:
         return new RunCommand(this::shoot, this)
             .until(this::atSpeed)
-            .andThen(this::feed,this)
-            .andThen(this::floorIntake,this)
+            .andThen(new RunCommand(()-> {
+              this.floorIntake();
+              this.feed();
+              this.shoot();
+            }))
             .finallyDo(() -> {
               stopShoot();
               stopFeed();
@@ -244,7 +247,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    log();
+    //log();
   }
 
   public boolean hasGamePiece(){

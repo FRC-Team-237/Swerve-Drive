@@ -4,8 +4,11 @@
 
 package frc.robot;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -46,7 +49,9 @@ public class RobotContainer {
   private boolean fieldCentric = true;
   private double maxVelocity = Constants.SwerveChassis.kMaxVelocity;
   private final ShooterSubsystem _shooter = new ShooterSubsystem();
-  private SendableChooser<Command> m_chooser = new SendableChooser<>(); 
+  private SendableChooser<Command> m_chooser = new SendableChooser<>();
+  private double _driveTimeStamp= 0; 
+  private double _driveDuration = 0; 
   public enum CommandType {
     kShoot,
     kPickup,
@@ -70,6 +75,7 @@ public class RobotContainer {
     m_chooser.addOption("Right One Note", makeSideAutoCommand(false));
     m_chooser.addOption("Center Two Note", makeCenterAutoCommand());
     m_chooser.addOption("Center Three Note", make3NoteAutoCommand(StartingPosition.kCenter));
+    SmartDashboard.putData("Auto Choices", m_chooser);
     configureBindings();
 
     _drive.setGyro(0);
@@ -229,15 +235,7 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    if(_buttonPanel.getRawButton(15)) { // Auto 4
-      return makeCenterAutoCommand();
-    } else if(_buttonPanel.getRawButton(17)) { // Auto 3
-      return makeSideAutoCommand(false);
-    } else if(_buttonPanel.getRawButton(16)) { // Auto 2
-      return makeSideAutoCommand(true);
-    } else { // Auto 1
-      return new JustShootAuto(_shooter, _drive);
-    }
+    return m_chooser.getSelected();
 
     // An example command will be run in autonomous
   }
@@ -271,9 +269,8 @@ public class RobotContainer {
 
   public Command makeCenterAutoCommand()
     {
-      return new RunCommand(_shooter::shoot, _shooter)
-      .until(_shooter::atSpeed)
-      .andThen(_shooter::feed,_shooter)
+      return  _shooter.getCommand(ShootAction.SPEAKER)
+      .withTimeout(2.0)
       .andThen(new WaitCommand(0.25))
       .andThen(_shooter::stopShoot,_shooter)
       .andThen(_shooter::stopFeed,_shooter)
@@ -285,26 +282,20 @@ public class RobotContainer {
               0,
               0,
               true),
-              _drive)
-              .withTimeout(2.5)))
-      .withTimeout(2.5)
+              _drive)))
+      .withTimeout(6)
       .andThen(() -> {_drive.drive(0, 0, 0, fieldCentric);})
-      .andThen(new ParallelCommandGroup(
+      .andThen(
           new RunCommand(() -> _drive.drive(
-              -1.5,
+              -1.0,
               0,
               0,
               true),
-              _drive)
-              .withTimeout(1.0)))
+              _drive).withTimeout(6)
+      )
       .andThen(_drive::stopMotors,_drive)
-      .andThen(new RunCommand(_shooter::shoot, _shooter)
-          .until(_shooter::atSpeed))  
-      .finallyDo(() -> {
-        _shooter.stopFeed();
-        _shooter.stopIntake();
-        _shooter.stopFloorIntake();
-      }).withName("Center2NoteAuto"); 
+      .andThen(_shooter.getCommand(ShootAction.SPEAKER)) 
+      .withName("Center2NoteAuto"); 
     }
     public Command makeShootCommand(){
       return new RunCommand(() -> {
