@@ -203,7 +203,7 @@ public class ShooterSubsystem extends SubsystemBase {
               this.floorIntake();
               this.feed();
               this.shoot();
-            }))
+            },this))
             .finallyDo(() -> {
               stopShoot();
               stopFeed();
